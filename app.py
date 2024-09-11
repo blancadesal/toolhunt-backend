@@ -46,15 +46,10 @@ class User(BaseModel):
     username: str
     email: str
 
-# Remove this line
-# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-# Add this instead
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
     authorizationUrl=TOOLHUB_AUTH_URL,
     tokenUrl=TOOLHUB_TOKEN_URL,
     refreshUrl=TOOLHUB_TOKEN_URL,
-    scopes={}  # Add scopes if required by Toolhub
 )
 
 # In-memory storage for states (in production, use a proper database)
