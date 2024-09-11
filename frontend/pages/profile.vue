@@ -6,6 +6,7 @@
     <div v-else-if="user">
       <p>Username: {{ user.username }}</p>
       <p>Email: {{ user.email }}</p>
+      <button @click="logout">Log out</button>
     </div>
     <div v-else>
       <p>Not logged in</p>
@@ -25,28 +26,20 @@ const router = useRouter()
 
 const fetchUserData = async () => {
   try {
-    const token = localStorage.getItem('access_token')
-    if (!token) {
-      console.log('No access token found, user is not logged in')
-      loading.value = false
-      return
-    }
-
     console.log('Fetching user data...')
     const response = await fetch('http://localhost:8082/api/user', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      credentials: 'include'
     })
     if (response.ok) {
       user.value = await response.json()
       console.log('User data fetched successfully:', user.value)
     } else {
       console.error('Failed to fetch user data:', response.status)
-      localStorage.removeItem('access_token')
+      user.value = null
     }
   } catch (error) {
     console.error('Error fetching user data:', error)
+    user.value = null
   } finally {
     loading.value = false
   }
@@ -55,7 +48,9 @@ const fetchUserData = async () => {
 const login = async () => {
   try {
     console.log('Initiating login process...')
-    const response = await fetch('http://localhost:8082/api/auth/login')
+    const response = await fetch('http://localhost:8082/api/auth/login', {
+      credentials: 'include'
+    })
     const data = await response.json()
     console.log('Received login URL:', data.login_url)
     window.location.href = data.login_url
@@ -75,13 +70,15 @@ const handleCallback = async (code, state) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ code, state }),
+      credentials: 'include'
     })
     if (response.ok) {
       const data = await response.json()
       console.log('Received data from callback:', data)
-      localStorage.setItem('access_token', data.access_token)
       user.value = data.user
       console.log('User logged in successfully:', user.value)
+      // Remove the query parameters from the URL
+      router.replace({ query: null })
     } else {
       console.error('OAuth callback failed:', response.status)
       const errorText = await response.text()
@@ -91,6 +88,23 @@ const handleCallback = async (code, state) => {
     console.error('Error handling OAuth callback:', error)
   } finally {
     loading.value = false
+  }
+}
+
+const logout = async () => {
+  try {
+    const response = await fetch('http://localhost:8082/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include'
+    })
+    if (response.ok) {
+      user.value = null
+      console.log('User logged out successfully')
+    } else {
+      console.error('Logout failed:', response.status)
+    }
+  } catch (error) {
+    console.error('Error during logout:', error)
   }
 }
 

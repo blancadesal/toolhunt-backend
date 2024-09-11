@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, Depends, Cookie, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
@@ -52,16 +52,15 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 state_storage = {}
 
 @app.get("/api/auth/login")
-async def login():
+async def login(request: Request):
     state = secrets.token_urlsafe(32)
-    state_id = secrets.token_urlsafe(16)
-    state_storage[state_id] = state
-    logger.info(f"Storing state {state} with ID {state_id}")
+    request.session["oauth_state"] = state
+    logger.info(f"Storing state in session: {state}")
     
     params = {
         "client_id": CLIENT_ID,
         "redirect_uri": REDIRECT_URI,
-        "state": f"{state_id}:{state}",
+        "state": state,
         "response_type": "code",
     }
     auth_url = f"{TOOLHUB_AUTH_URL}?{urlencode(params)}"
@@ -77,19 +76,15 @@ async def oauth_callback(request: Request):
     
     logger.info(f"Received callback with code: {code} and state: {received_state}")
     
-    if not received_state or ':' not in received_state:
-        raise HTTPException(status_code=400, detail="Invalid state format")
+    stored_state = request.session.get("oauth_state")
+    logger.info(f"Stored state in session: {stored_state}")
     
-    state_id, state = received_state.split(':', 1)
-    stored_state = state_storage.get(state_id)
-    logger.info(f"Stored state for ID {state_id}: {stored_state}")
-    
-    if not stored_state or state != stored_state:
-        logger.error(f"Invalid state. Received: {state}, Stored: {stored_state}")
+    if not stored_state or received_state != stored_state:
+        logger.error(f"Invalid state. Received: {received_state}, Stored: {stored_state}")
         raise HTTPException(status_code=400, detail="Invalid state")
     
     # Remove the used state
-    del state_storage[state_id]
+    del request.session["oauth_state"]
     
     token_response = await exchange_code_for_token(code)
     logger.info("Successfully exchanged code for token")
@@ -101,11 +96,11 @@ async def oauth_callback(request: Request):
     access_token = create_access_token(data={"sub": db_user.id})
     
     logger.info(f"Created access token for user: {db_user.id}")
-    return JSONResponse(content={
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": db_user.dict()
-    })
+    
+    # Store the access token in the session
+    request.session["access_token"] = access_token
+    
+    return {"user": db_user.dict()}
 
 async def exchange_code_for_token(code):
     async with httpx.AsyncClient() as client:
@@ -157,8 +152,28 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 @app.get("/api/user")
-async def get_user(current_user: User = Depends(get_current_user)):
-    return current_user
+async def get_user(request: Request):
+    access_token = request.session.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    try:
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+
+    user = users.get(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@app.post("/api/auth/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return {"message": "Logged out successfully"}
 
 @app.get("/debug/session")
 async def debug_session(request: Request):
