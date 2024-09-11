@@ -7,7 +7,16 @@
 </template>
 
 <script setup>
-const login = () => {
-  window.location.href = 'http://localhost:8082/login'
+const login = async () => {
+  try {
+    const response = await fetch('http://localhost:8082/api/auth/login')
+    if (!response.ok) {
+      throw new Error('Failed to get login URL')
+    }
+    const data = await response.json()
+    window.location.href = data.login_url
+  } catch (error) {
+    console.error('Error initiating login:', error)
+  }
 }
 </script>

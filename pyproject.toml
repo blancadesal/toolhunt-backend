@@ -10,6 +10,8 @@ python = "^3.12"
 fastapi = {extras = ["standard"], version = "^0.114.1"}
 httpx = "^0.27.2"
 itsdangerous = "^2.2.0"
+jwt = "^1.3.1"
+python-jose = "^3.3.0"
 
 
 [build-system]
