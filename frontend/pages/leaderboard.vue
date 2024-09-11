@@ -1,7 +1,35 @@
+<template>
+  <div class="min-h-screen bg-base-200 py-8">
+    <div class="container mx-auto px-4">
+      <h1 class="text-3xl font-bold mb-2">Toolhunt Leaderboard</h1>
+      <p class="text-gray-600 mb-6">Top contributors to the Toolhunt community</p>
+      
+      <div class="bg-base-100 shadow-xl rounded-box overflow-x-auto">
+        <table class="table w-full">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Username</th>
+              <th>Score</th>
+              <th>Contributions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="user in leaderboardData" :key="user.rank">
+              <th>{{ user.rank }}</th>
+              <td>{{ user.username }}</td>
+              <td>{{ user.score }}</td>
+              <td>{{ user.contributions }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</template>
 <script setup>
 import { ref } from 'vue'
 
-// Mock data for the leaderboard
 const leaderboardData = ref([
   { rank: 1, username: 'TechWizard', score: 1250, contributions: 42 },
   { rank: 2, username: 'CodeNinja', score: 1100, contributions: 38 },
@@ -15,73 +43,3 @@ const leaderboardData = ref([
   { rank: 10, username: 'AIInnovator', score: 500, contributions: 15 },
 ])
 </script>
-
-<template>
-  <div class="leaderboard">
-    <h1>Toolhunt Leaderboard</h1>
-    <p>Top contributors to the Toolhunt community</p>
-    
-    <table>
-      <thead>
-        <tr>
-          <th>Rank</th>
-          <th>Username</th>
-          <th>Score</th>
-          <th>Contributions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="user in leaderboardData" :key="user.rank">
-          <td>{{ user.rank }}</td>
-          <td>{{ user.username }}</td>
-          <td>{{ user.score }}</td>
-          <td>{{ user.contributions }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</template>
-
-<style scoped>
-.leaderboard {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-h1 {
-  color: #333;
-  margin-bottom: 0.5rem;
-}
-
-p {
-  color: #666;
-  margin-bottom: 2rem;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-
-th, td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
-
-th {
-  background-color: #f2f2f2;
-  font-weight: bold;
-  color: #333;
-}
-
-tr:nth-child(even) {
-  background-color: #f8f8f8;
-}
-
-tr:hover {
-  background-color: #e8e8e8;
-}
-</style>

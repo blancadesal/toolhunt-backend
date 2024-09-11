@@ -3,10 +3,14 @@ const { authState } = useAuth()
 </script>
 
 <template>
-  <div class="home">
-    <h1>Welcome to Our App</h1>
-    <p v-if="authState.user">Hello, {{ authState.user.username }}!</p>
-    <p v-else>This is the homepage of our amazing application.</p>
+  <div class="hero min-h-screen bg-base-200">
+    <div class="hero-content text-center">
+      <div class="max-w-md">
+        <h1 class="text-5xl font-bold">Welcome to Toolhunt</h1>
+        <p class="py-6">Discover and share the best developer tools and resources.</p>
+        <NuxtLink to="/leaderboard" class="btn btn-primary">View Leaderboard</NuxtLink>
+      </div>
+    </div>
   </div>
 </template>
 

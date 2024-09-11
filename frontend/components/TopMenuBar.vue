@@ -1,18 +1,22 @@
 <template>
-  <div class="top-menu-bar">
-    <NuxtLink to="/" class="logo">Toolhunt</NuxtLink>
-    <div class="spacer"></div>
-    <NuxtLink to="/leaderboard">Leaderboard</NuxtLink>
-    <NuxtLink to="/profile">Profile</NuxtLink>
-    <button v-if="authState.user" @click="logout" class="login-button">Logout</button>
-    <button v-else @click="login" class="login-button">Login</button>
+  <div class="navbar bg-base-100 shadow-lg">
+    <div class="flex-1">
+      <NuxtLink to="/" class="btn btn-ghost normal-case text-2xl">Toolhunt</NuxtLink>
+    </div>
+    <div class="flex-none">
+      <ul class="menu menu-horizontal px-1 items-center">
+        <li><NuxtLink to="/leaderboard" class="text-lg px-4 py-2">Leaderboard</NuxtLink></li>
+        <li><NuxtLink to="/profile" class="text-lg px-4 py-2">Profile</NuxtLink></li>
+        <li class="ml-2">
+          <a v-if="authState.user" @click="logout" class="btn btn-outline btn-primary normal-case px-4 py-2">Logout</a>
+          <a v-else @click="login" class="btn btn-primary normal-case px-4 py-2">Login</a>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-
 const { authState, fetchUserData } = useAuth()
 const router = useRouter()
 
@@ -49,47 +53,3 @@ onMounted(() => {
   fetchUserData()
 })
 </script>
-
-<style scoped>
-.top-menu-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background-color: #f0f0f0;
-}
-
-.logo {
-  font-size: 1.5rem;
-  font-weight: bold;
-  text-decoration: none;
-  color: #333;
-}
-
-.spacer {
-  flex-grow: 1;
-}
-
-.login-button {
-  padding: 0.5rem 1rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.login-button:hover {
-  background-color: #0056b3;
-}
-
-a {
-  margin-right: 1rem;
-  text-decoration: none;
-  color: #007bff;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-</style>
