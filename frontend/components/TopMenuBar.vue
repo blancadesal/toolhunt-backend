@@ -1,43 +1,53 @@
 <template>
-  <nav class="top-menu-bar">
-    <div class="logo">Your App Name</div>
+  <div class="top-menu-bar">
+    <NuxtLink to="/" class="logo">Toolhunt</NuxtLink>
     <div class="spacer"></div>
-    <button @click="login" class="login-button">Login</button>
-  </nav>
+    <NuxtLink to="/leaderboard">Leaderboard</NuxtLink>
+    <NuxtLink to="/profile">Profile</NuxtLink>
+    <button v-if="authState.user" @click="logout" class="login-button">Logout</button>
+    <button v-else @click="login" class="login-button">Login</button>
+  </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const { authState, fetchUserData } = useAuth()
+const router = useRouter()
+
 const login = async () => {
   try {
-    console.log('Attempting to fetch from:', '/login');
-    const response = await fetch('/login', {
-      method: 'GET',
-      credentials: 'include',
-      redirect: 'manual',
-    });
-    
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
+    const response = await fetch('http://localhost:8082/api/auth/login', {
+      credentials: 'include'
+    })
+    const data = await response.json()
+    window.location.href = data.login_url
+  } catch (error) {
+    console.error('Error initiating login:', error)
+  }
+}
 
-    if (response.status === 307) {
-      const redirectUrl = response.headers.get('Location');
-      if (redirectUrl) {
-        console.log('Redirect URL:', redirectUrl);
-        window.location.href = redirectUrl;
-      } else {
-        console.error('No redirect URL found');
-      }
-    } else if (response.status === 0) {
-      console.error('Network error: No response from server. Check if the server is running and accessible.');
+const logout = async () => {
+  try {
+    const response = await fetch('http://localhost:8082/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include'
+    })
+    if (response.ok) {
+      authState.value.user = null
+      router.push('/')
     } else {
-      console.error('Unexpected response:', response.status);
-      const text = await response.text();
-      console.error('Response text:', text);
+      console.error('Logout failed:', response.status)
     }
   } catch (error) {
-    console.error('Error during login:', error);
+    console.error('Error during logout:', error)
   }
-};
+}
+
+onMounted(() => {
+  fetchUserData()
+})
 </script>
 
 <style scoped>
@@ -52,6 +62,8 @@ const login = async () => {
 .logo {
   font-size: 1.5rem;
   font-weight: bold;
+  text-decoration: none;
+  color: #333;
 }
 
 .spacer {
@@ -69,5 +81,15 @@ const login = async () => {
 
 .login-button:hover {
   background-color: #0056b3;
+}
+
+a {
+  margin-right: 1rem;
+  text-decoration: none;
+  color: #007bff;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 </style>
