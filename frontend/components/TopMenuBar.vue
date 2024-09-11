@@ -1,7 +1,10 @@
 <template>
   <div class="navbar bg-base-100 shadow-lg">
     <div class="navbar-start">
-      <NuxtLink to="/" class="btn btn-ghost normal-case text-xl">Toolhunt</NuxtLink>
+      <NuxtLink to="/" class="btn btn-ghost normal-case text-2xl flex items-center">
+        <img src="@/assets/logo-main.svg" alt="Toolhunt Logo" class="w-12 h-12 mr-3" />
+        <span class="font-bold">Toolhunt</span>
+      </NuxtLink>
     </div>
     <div class="navbar-end">
       <div class="dropdown dropdown-end">
