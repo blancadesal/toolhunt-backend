@@ -40,7 +40,7 @@ const route = useRoute()
 const login = async () => {
   try {
     const currentPath = route.fullPath
-    const response = await fetch(`http://localhost:8082/api/auth/login?redirect_after=${encodeURIComponent(currentPath)}`, {
+    const response = await fetch(`http://localhost:8082/api/v1/auth/login?redirect_after=${encodeURIComponent(currentPath)}`, {
       credentials: 'include'
     })
     const data = await response.json()
@@ -52,7 +52,7 @@ const login = async () => {
 
 const logout = async () => {
   try {
-    const response = await fetch('http://localhost:8082/api/auth/logout', {
+    const response = await fetch('http://localhost:8082/api/v1/auth/logout', {
       method: 'POST',
       credentials: 'include'
     })

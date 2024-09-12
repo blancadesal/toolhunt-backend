@@ -1,12 +1,10 @@
-import httpx
-from fastapi import Cookie, HTTPException, status
 from datetime import UTC, datetime, timedelta
-from jose import jwt, JWTError
 
-
+import httpx
 from config import get_settings
+from fastapi import Cookie, HTTPException, status
+from jose import JWTError, jwt
 from models.pydantic import User
-
 
 settings = get_settings()
 
@@ -14,6 +12,7 @@ ALGORITHM = "HS256"
 
 # In-memory user storage
 users = {}
+
 
 async def exchange_code_for_token(code):
     async with httpx.AsyncClient() as client:
@@ -39,7 +38,9 @@ def create_access_token(subject: str, expires_delta: timedelta):
 
 async def get_current_user(access_token: str = Cookie(None)) -> User:
     if not access_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
+        )
 
     try:
         payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[ALGORITHM])
@@ -48,7 +49,9 @@ async def get_current_user(access_token: str = Cookie(None)) -> User:
             raise ValueError("Invalid user ID")
         return users[user_id]
     except (JWTError, ValueError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
 
 
 def create_or_update_user(user_data):

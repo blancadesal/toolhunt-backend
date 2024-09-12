@@ -12,7 +12,7 @@ export const api = {
   },
 
   async getUser() {
-    const response = await fetch(`${API_BASE_URL}/api/user`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/user`, {
       credentials: 'include',
     });
     if (!response.ok) {

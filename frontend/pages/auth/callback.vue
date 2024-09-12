@@ -10,7 +10,7 @@ const { authState, fetchUserData } = useAuth()
 onMounted(async () => {
   const { code, state } = route.query
   try {
-    const response = await fetch('http://localhost:8082/api/auth/callback', {
+    const response = await fetch('http://localhost:8082/api/v1/auth/callback', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

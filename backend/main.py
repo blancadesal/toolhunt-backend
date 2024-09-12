@@ -1,124 +1,45 @@
 import logging
-import secrets
-from datetime import timedelta
-from urllib.parse import urlencode
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from api import auth, user
+from config import get_settings
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.security import OAuth2AuthorizationCodeBearer
 from starlette.middleware.sessions import SessionMiddleware
-
-
-from config import get_settings
-from auth import exchange_code_for_token, create_access_token, create_or_update_user, get_current_user, fetch_user_data
-from models.pydantic import User
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
-settings = get_settings()
 
-# Keep the SessionMiddleware
-app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+def create_app() -> FastAPI:
+    settings = get_settings()
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    app = FastAPI()
 
-
-oauth2_scheme = OAuth2AuthorizationCodeBearer(
-    authorizationUrl=settings.TOOLHUB_AUTH_URL,
-    tokenUrl=settings.TOOLHUB_TOKEN_URL,
-)
-
-
-
-
-@app.get("/api/auth/login")
-async def login(request: Request, redirect_after: str = "/profile"):
-    state = secrets.token_urlsafe(32)
-    request.session["oauth_state"] = state
-    request.session["redirect_after"] = redirect_after
-    logger.info(f"Storing state in session: {state}")
-    logger.info(f"Storing redirect URL: {redirect_after}")
-
-    params = {
-        "client_id": settings.CLIENT_ID,
-        "redirect_uri": settings.REDIRECT_URI,
-        "state": state,
-        "response_type": "code",
-    }
-    auth_url = f"{settings.TOOLHUB_AUTH_URL}?{urlencode(params)}"
-    logger.info(f"Generated login URL: {auth_url}")
-
-    return JSONResponse(content={"login_url": auth_url})
-
-
-@app.post("/api/auth/callback")
-async def oauth_callback(request: Request, response: Response):
-    body = await request.json()
-    code = body.get("code")
-    received_state = body.get("state")
-
-    logger.info(f"Received callback with code: {code} and state: {received_state}")
-
-    stored_state = request.session.get("oauth_state")
-    logger.info(f"Stored state in session: {stored_state}")
-
-    if not stored_state or received_state != stored_state:
-        logger.error(
-            f"Invalid state. Received: {received_state}, Stored: {stored_state}"
-        )
-        raise HTTPException(status_code=400, detail="Invalid state")
-
-    # Retrieve the stored redirect URL
-    redirect_after = request.session.get("redirect_after", "/profile")
-
-    # Remove the used state and redirect URL
-    del request.session["oauth_state"]
-    request.session.pop("redirect_after", None)
-
-    token_response = await exchange_code_for_token(code)
-    logger.info("Successfully exchanged code for token")
-
-    user_data = await fetch_user_data(token_response["access_token"])
-    logger.info(f"Fetched user data: {user_data}")
-
-    db_user = create_or_update_user(user_data)
-    access_token = create_access_token(db_user.id, timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
-
-    logger.info(f"Created access token for user: {db_user.id}")
-
-    # Set the access token as an HTTP-only cookie
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        secure=True,  # Set to True if using HTTPS
-        samesite="lax",
-        max_age=7200,  # 2 hours, adjust as needed
+    # Add middleware
+    app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
-    return {"user": db_user.dict(), "redirect_to": redirect_after}
+    # Create a top-level API router
+    api_router = APIRouter(prefix="/api/v1")
+
+    # Include other routers
+    api_router.include_router(auth.router)
+    api_router.include_router(user.router)
+
+    app.include_router(api_router)
+
+    return app
 
 
-@app.post("/api/auth/logout")
-async def logout(response: Response):
-    response.delete_cookie(key="access_token")
-    return {"message": "Logged out successfully"}
-
-
-@app.get("/api/user")
-async def read_users_me(current_user: User = Depends(get_current_user)):
-    return current_user
+app = create_app()
 
 
 @app.get("/debug/session")

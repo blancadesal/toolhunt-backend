@@ -21,7 +21,7 @@ export const useAuth = () => {
   const fetchUserData = async () => {
     authState.value.loading = true
     try {
-      const response = await fetch('http://localhost:8082/api/user', {
+      const response = await fetch('http://localhost:8082/api/v1/user', {
         credentials: 'include'
       })
       if (response.ok) {
