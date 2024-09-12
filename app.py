@@ -34,7 +34,7 @@ TOOLHUB_AUTH_URL = "https://toolhub-demo.wmcloud.org/o/authorize/"
 TOOLHUB_TOKEN_URL = "https://toolhub-demo.wmcloud.org/o/token/"
 CLIENT_ID = "7hNuRLxSPJ9Q8S3LZnpDv9WinufE04s5vK2RkexX"
 CLIENT_SECRET = "vc5WIJYyWnPHUCK4sSQmrtVaiZWTIgSQPsnTPR5FrSIg7GsAIVfxgnazjuUsg4fSRTYe1FKNRMPIdPWt53trkRytJQVSlqVbtxpn4vQG3RxNxekw7N9lj8zwCaTQmEYO"
-REDIRECT_URI = "http://localhost:3000/profile"
+REDIRECT_URI = "http://localhost:3000/auth/callback"
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 
@@ -56,10 +56,12 @@ oauth2_scheme = OAuth2AuthorizationCodeBearer(
 state_storage = {}
 
 @app.get("/api/auth/login")
-async def login(request: Request):
+async def login(request: Request, redirect_after: str = "/profile"):
     state = secrets.token_urlsafe(32)
     request.session["oauth_state"] = state
+    request.session["redirect_after"] = redirect_after
     logger.info(f"Storing state in session: {state}")
+    logger.info(f"Storing redirect URL: {redirect_after}")
 
     params = {
         "client_id": CLIENT_ID,
@@ -87,8 +89,12 @@ async def oauth_callback(request: Request, response: Response):
         logger.error(f"Invalid state. Received: {received_state}, Stored: {stored_state}")
         raise HTTPException(status_code=400, detail="Invalid state")
 
-    # Remove the used state
+    # Retrieve the stored redirect URL
+    redirect_after = request.session.get("redirect_after", "/profile")
+
+    # Remove the used state and redirect URL
     del request.session["oauth_state"]
+    request.session.pop("redirect_after", None)
 
     token_response = await exchange_code_for_token(code)
     logger.info("Successfully exchanged code for token")
@@ -111,7 +117,7 @@ async def oauth_callback(request: Request, response: Response):
         max_age=7200  # 2 hours, adjust as needed
     )
 
-    return {"user": db_user.dict()}
+    return {"user": db_user.dict(), "redirect_to": redirect_after}
 
 async def exchange_code_for_token(code):
     async with httpx.AsyncClient() as client:

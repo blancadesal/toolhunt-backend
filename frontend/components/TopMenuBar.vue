@@ -35,10 +35,12 @@
 <script setup>
 const { authState, fetchUserData } = useAuth()
 const router = useRouter()
+const route = useRoute()
 
 const login = async () => {
   try {
-    const response = await fetch('http://localhost:8082/api/auth/login', {
+    const currentPath = route.fullPath
+    const response = await fetch(`http://localhost:8082/api/auth/login?redirect_after=${encodeURIComponent(currentPath)}`, {
       credentials: 'include'
     })
     const data = await response.json()
