@@ -303,9 +303,9 @@ onMounted(fetchTasks);
 
 <template>
   <div class="min-h-screen bg-base-200 flex flex-col items-center p-4">
-    <h1 class="text-4xl font-bold mt-4 mb-4">Toolhunt</h1>
+    <h1 class="text-4xl font-bold mt-4 mb-4">Welcome to Toolhunt!</h1>
 
-    <div class="w-full max-w-lg mb-4">
+    <div class="w-full max-w-lg mb-8 mt-4">
       <div class="form-control">
         <div class="relative">
           <input v-model="searchQuery" type="text" placeholder="Search for tools..." class="input input-bordered w-full pr-10" />

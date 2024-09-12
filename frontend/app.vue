@@ -1,10 +1,6 @@
 <template>
-  <div data-theme="cupcake">
+  <div data-theme="emerald">
     <TopMenuBar />
     <NuxtPage />
   </div>
 </template>
-
-<script setup>
-import TopMenuBar from '~/components/TopMenuBar.vue'
-</script>

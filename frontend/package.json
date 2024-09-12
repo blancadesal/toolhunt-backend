@@ -16,6 +16,7 @@
     "vue-router": "latest"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.15",
     "daisyui": "^4.12.10"
   }
 }
