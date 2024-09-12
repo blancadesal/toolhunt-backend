@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm as requirements-stage
+FROM python:3.12-slim-bookworm AS requirements-stage
 
 WORKDIR /tmp
 

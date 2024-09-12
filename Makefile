@@ -32,7 +32,7 @@ seed:  ## Seed the database
 	@docker-compose exec fastapi-web python scripts/seed.py
 
 db-shell:  ## Access the database shell
-	@docker-compose exec db sh -c 'mysql -u $$MARIADB_USER -p$$MARIADB_PASSWORD'
+	@docker-compose exec mariadb sh -c 'mysql -u $$MARIADB_USER -p$$MARIADB_PASSWORD'
 
 web-shell:  ## Access the web shell
 	@docker-compose exec fastapi-web sh

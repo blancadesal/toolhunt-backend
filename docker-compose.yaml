@@ -23,6 +23,11 @@ services:
     restart: always
     env_file:
       - .env
+    environment:
+      - MARIADB_USER=${MARIADB_USER?Variable not set}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD?Variable not set}
+      - MARIADB_DATABASE=${MARIADB_DATABASE?Variable not set}
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD?Variable not set}
     volumes:
       - mariadb_data:/var/lib/mysql
     ports:
