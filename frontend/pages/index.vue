@@ -326,8 +326,8 @@ onMounted(fetchTasks);
         </div>
       </div>
     </div>
-    
-    <div v-if="currentTask" class="card bg-base-100 shadow-xl w-full max-w-lg transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-2xl">
+
+    <div v-if="currentTask" class="card bg-base-100 shadow-xl w-full max-w-lg">
       <div class="card-body">
         <h2 class="card-title text-2xl mb-2">{{ currentTask.tool.title }}</h2>
         <p class="mb-4 text-gray-600">{{ currentTask.tool.description }}</p>
@@ -342,7 +342,7 @@ onMounted(fetchTasks);
           <p>{{ currentTask.field.name }}</p>
           <p class="text-sm mt-2">{{ currentTask.field.description }}</p>
         </div>
-        
+
         <div class="form-control">
           <label class="label">
             <span class="label-text">Help complete this tool's information:</span>

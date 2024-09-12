@@ -1,15 +1,16 @@
-from fastapi import FastAPI, HTTPException, Request, Depends, Cookie, Response, status
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2AuthorizationCodeBearer
-from starlette.middleware.sessions import SessionMiddleware
-import secrets
-from jose import JWTError, jwt
-from datetime import datetime, timedelta, UTC
-from urllib.parse import urlencode
-from pydantic import BaseModel
 import logging
+import secrets
+from datetime import UTC, datetime, timedelta
+from urllib.parse import urlencode
+
 import httpx
+from fastapi import Cookie, Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2AuthorizationCodeBearer
+from jose import JWTError, jwt
+from pydantic import BaseModel
+from starlette.middleware.sessions import SessionMiddleware
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -41,10 +42,12 @@ ALGORITHM = "HS256"
 # In-memory user storage
 users = {}
 
+
 class User(BaseModel):
     id: str
     username: str
     email: str
+
 
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
     authorizationUrl=TOOLHUB_AUTH_URL,
@@ -54,6 +57,7 @@ oauth2_scheme = OAuth2AuthorizationCodeBearer(
 
 # In-memory storage for states (in production, use a proper database)
 state_storage = {}
+
 
 @app.get("/api/auth/login")
 async def login(request: Request, redirect_after: str = "/profile"):
@@ -74,6 +78,7 @@ async def login(request: Request, redirect_after: str = "/profile"):
 
     return JSONResponse(content={"login_url": auth_url})
 
+
 @app.post("/api/auth/callback")
 async def oauth_callback(request: Request, response: Response):
     body = await request.json()
@@ -86,7 +91,9 @@ async def oauth_callback(request: Request, response: Response):
     logger.info(f"Stored state in session: {stored_state}")
 
     if not stored_state or received_state != stored_state:
-        logger.error(f"Invalid state. Received: {received_state}, Stored: {stored_state}")
+        logger.error(
+            f"Invalid state. Received: {received_state}, Stored: {stored_state}"
+        )
         raise HTTPException(status_code=400, detail="Invalid state")
 
     # Retrieve the stored redirect URL
@@ -114,38 +121,42 @@ async def oauth_callback(request: Request, response: Response):
         httponly=True,
         secure=True,  # Set to True if using HTTPS
         samesite="lax",
-        max_age=7200  # 2 hours, adjust as needed
+        max_age=7200,  # 2 hours, adjust as needed
     )
 
     return {"user": db_user.dict(), "redirect_to": redirect_after}
 
+
 async def exchange_code_for_token(code):
     async with httpx.AsyncClient() as client:
-        response = await client.post(TOOLHUB_TOKEN_URL, data={
-            "grant_type": "authorization_code",
-            "code": code,
-            "redirect_uri": REDIRECT_URI,
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-        })
+        response = await client.post(
+            TOOLHUB_TOKEN_URL,
+            data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": REDIRECT_URI,
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+            },
+        )
     return response.json()
+
 
 async def fetch_user_data(access_token):
     async with httpx.AsyncClient() as client:
-        response = await client.get("https://toolhub-demo.wmcloud.org/api/user/", headers={
-            "Authorization": f"Bearer {access_token}"
-        })
+        response = await client.get(
+            "https://toolhub-demo.wmcloud.org/api/user/",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
     return response.json()
+
 
 def create_or_update_user(user_data):
     user_id = str(user_data["id"])
-    user = User(
-        id=user_id,
-        username=user_data["username"],
-        email=user_data["email"]
-    )
+    user = User(id=user_id, username=user_data["username"], email=user_data["email"])
     users[user_id] = user
     return user
+
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -153,6 +164,7 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
 
 # Update this function
 async def get_current_user(access_token: str = Cookie(None)):
@@ -162,7 +174,7 @@ async def get_current_user(access_token: str = Cookie(None)):
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -180,18 +192,20 @@ async def get_current_user(access_token: str = Cookie(None)):
     except JWTError:
         raise credentials_exception
 
+
 @app.get("/api/user")
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
+
 
 @app.post("/api/auth/logout")
 async def logout(response: Response):
     response.delete_cookie(key="access_token")
     return {"message": "Logged out successfully"}
 
+
 @app.get("/debug/session")
 async def debug_session(request: Request):
-    return JSONResponse(content={
-        "session": dict(request.session),
-        "cookies": request.cookies
-    })
+    return JSONResponse(
+        content={"session": dict(request.session), "cookies": request.cookies}
+    )

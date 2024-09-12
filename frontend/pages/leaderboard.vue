@@ -2,14 +2,14 @@
   <div class="min-h-screen bg-base-200 py-8">
     <div class="container mx-auto px-4">
       <h1 class="text-3xl font-bold mb-6">Toolhunt Leaderboard</h1>
-      
+
       <!-- Top Hunters from the Last 30 Days -->
       <div class="mb-8">
         <h2 class="text-2xl font-bold mb-2">Top Hunters from the Last 30 Days</h2>
         <p class="text-gray-600 mb-4">Rising stars illuminating the vast toolscape</p>
         <LeaderboardTable :users="topHuntersLastMonth" />
       </div>
-      
+
       <!-- All Time Greats -->
       <div>
         <h2 class="text-2xl font-bold mb-2">All Time Greats</h2>
