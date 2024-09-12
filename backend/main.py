@@ -12,14 +12,17 @@ from jose import JWTError, jwt
 from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 
+from config import get_settings
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+settings = get_settings()
 
 # Keep the SessionMiddleware
-app.add_middleware(SessionMiddleware, secret_key="your-session-secret-key")
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 # CORS middleware
 app.add_middleware(
@@ -29,15 +32,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Constants
-TOOLHUB_AUTH_URL = "https://toolhub-demo.wmcloud.org/o/authorize/"
-TOOLHUB_TOKEN_URL = "https://toolhub-demo.wmcloud.org/o/token/"
-CLIENT_ID = "7hNuRLxSPJ9Q8S3LZnpDv9WinufE04s5vK2RkexX"
-CLIENT_SECRET = "vc5WIJYyWnPHUCK4sSQmrtVaiZWTIgSQPsnTPR5FrSIg7GsAIVfxgnazjuUsg4fSRTYe1FKNRMPIdPWt53trkRytJQVSlqVbtxpn4vQG3RxNxekw7N9lj8zwCaTQmEYO"
-REDIRECT_URI = "http://localhost:3000/auth/callback"
-SECRET_KEY = "your-secret-key"
-ALGORITHM = "HS256"
 
 # In-memory user storage
 users = {}
@@ -50,9 +44,8 @@ class User(BaseModel):
 
 
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
-    authorizationUrl=TOOLHUB_AUTH_URL,
-    tokenUrl=TOOLHUB_TOKEN_URL,
-    refreshUrl=TOOLHUB_TOKEN_URL,
+    authorizationUrl=settings.TOOLHUB_AUTH_URL,
+    tokenUrl=settings.TOOLHUB_TOKEN_URL,
 )
 
 # In-memory storage for states (in production, use a proper database)
@@ -68,12 +61,12 @@ async def login(request: Request, redirect_after: str = "/profile"):
     logger.info(f"Storing redirect URL: {redirect_after}")
 
     params = {
-        "client_id": CLIENT_ID,
-        "redirect_uri": REDIRECT_URI,
+        "client_id": settings.CLIENT_ID,
+        "redirect_uri": settings.REDIRECT_URI,
         "state": state,
         "response_type": "code",
     }
-    auth_url = f"{TOOLHUB_AUTH_URL}?{urlencode(params)}"
+    auth_url = f"{settings.TOOLHUB_AUTH_URL}?{urlencode(params)}"
     logger.info(f"Generated login URL: {auth_url}")
 
     return JSONResponse(content={"login_url": auth_url})
@@ -130,13 +123,13 @@ async def oauth_callback(request: Request, response: Response):
 async def exchange_code_for_token(code):
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            TOOLHUB_TOKEN_URL,
+            settings.TOOLHUB_TOKEN_URL,
             data={
                 "grant_type": "authorization_code",
                 "code": code,
-                "redirect_uri": REDIRECT_URI,
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
+                "redirect_uri": settings.REDIRECT_URI,
+                "client_id": settings.CLIENT_ID,
+                "client_secret": settings.CLIENT_SECRET,
             },
         )
     return response.json()
@@ -162,7 +155,7 @@ def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(minutes=120)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 
@@ -181,7 +174,7 @@ async def get_current_user(access_token: str = Cookie(None)):
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception

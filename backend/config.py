@@ -1,8 +1,9 @@
 import logging
 import secrets
 from functools import lru_cache
+from typing import Literal
 
-from pydantic import AnyUrl
+from pydantic import AnyHttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 log = logging.getLogger("uvicorn")
@@ -18,21 +19,21 @@ class Settings(BaseSettings):
     MARIADB_DATABASE: str
 
     # FastAPI configuration
-    ENVIRONMENT: str = "dev"
-    DATABASE_URL: AnyUrl
-    TOOLHUB_API_ENDPOINT: AnyUrl
+    ENVIRONMENT: Literal["dev", "prod"] = "dev"
+    DATABASE_URL: str
+    TOOLHUB_API_ENDPOINT: str
 
     # OAuth2 configuration
-    TOOLHUB_AUTH_URL: AnyUrl
-    TOOLHUB_TOKEN_URL: AnyUrl
+    TOOLHUB_AUTH_URL: str
+    TOOLHUB_TOKEN_URL: str
     CLIENT_ID: str
     CLIENT_SECRET: str
-    REDIRECT_URI: AnyUrl
+    REDIRECT_URI: str
     SECRET_KEY: str = secrets.token_urlsafe(32)
     ALGORITHM: str = "HS256"
 
 
 @lru_cache()
 def get_settings() -> Settings:
-    log.info("Loading config settings from the environment...")
+    log.info("Loading settings from the environment...")
     return Settings()
