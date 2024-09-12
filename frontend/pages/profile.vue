@@ -7,7 +7,7 @@
         <span class="loading loading-spinner"></span>
         Loading...
       </div>
-      <div v-else-if="authState.user" class="card bg-base-100 shadow-xl">
+      <div v-else-if="isLoggedIn" class="card bg-base-100 shadow-xl">
         <div class="card-body">
           <h2 class="card-title">{{ authState.user.username }}</h2>
           <p><strong>Email:</strong> {{ authState.user.email }}</p>
@@ -21,48 +21,9 @@
 </template>
 
 <script setup>
-const { authState, fetchUserData } = useAuth()
-const route = useRoute()
-const router = useRouter()
-
-const handleCallback = async (code, state) => {
-  try {
-    const response = await fetch('http://localhost:8082/api/v1/auth/callback', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ code, state }),
-      credentials: 'include'
-    })
-    if (response.ok) {
-      const data = await response.json()
-      authState.value.user = data.user
-      router.replace({ query: null })
-    } else {
-      console.error('OAuth callback failed:', response.status)
-      router.push('/')
-    }
-  } catch (error) {
-    console.error('Error handling OAuth callback:', error)
-    router.push('/')
-  }
-}
+const { authState, isLoggedIn, fetchUserData } = useAuth()
 
 onMounted(() => {
-  const { code, state } = route.query
-  if (code && state) {
-    handleCallback(code, state)
-  } else {
-    fetchUserData()
-  }
+  fetchUserData()
 })
 </script>
-
-<style scoped>
-.profile {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-</style>

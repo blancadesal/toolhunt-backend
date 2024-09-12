@@ -1,17 +1,14 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-const { authState } = useAuth();
+const { isLoggedIn } = useAuth();
 
 const tasks = ref([]);
 const currentTaskIndex = ref(0);
 const userInput = ref('');
 const searchQuery = ref('');
 
-const isLoggedIn = computed(() => authState.value?.user != null);
 const currentTask = computed(() => tasks.value[currentTaskIndex.value] || null);
 
 const fetchTasks = async () => {
-  // Replace this with an actual API call
   tasks.value = [
     {
         "field": {
@@ -259,15 +256,9 @@ const fetchTasks = async () => {
         }
     }
 ];
-  shuffleTasks();
+
 };
 
-const shuffleTasks = () => {
-  for (let i = tasks.value.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [tasks.value[i], tasks.value[j]] = [tasks.value[j], tasks.value[i]];
-  }
-};
 
 const nextTask = () => {
   currentTaskIndex.value = (currentTaskIndex.value + 1) % tasks.value.length;
@@ -281,12 +272,10 @@ const previousTask = () => {
 
 const submitContribution = async () => {
   if (!isLoggedIn.value) {
-    // Redirect to login
     return;
   }
 
   if (!validateInput()) {
-    // Show error message
     return;
   }
 
@@ -302,7 +291,7 @@ const validateInput = () => {
   } else if (field.pattern) {
     return new RegExp(field.pattern).test(userInput.value);
   }
-  return true; // No validation required
+  return true;
 };
 
 const searchTools = () => {

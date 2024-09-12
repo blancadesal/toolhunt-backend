@@ -21,10 +21,6 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import LeaderboardTable from '@/components/LeaderboardTable.vue'
-
-// Fun mock data for Top Hunters from the Last 30 Days
 const topHuntersLastMonth = ref([
   { rank: 1, username: 'RisingStarDev', contributions: 75 },
   { rank: 2, username: 'NewCodeWhiz', contributions: 68 },
@@ -33,7 +29,6 @@ const topHuntersLastMonth = ref([
   { rank: 5, username: 'QuickLearnPro', contributions: 49 },
 ])
 
-// Fun mock data for All Time Greats
 const allTimeGreats = ref([
   { rank: 1, username: 'CodeNinja42', contributions: 1250 },
   { rank: 2, username: 'BugSlayer99', contributions: 1120 },
@@ -41,20 +36,4 @@ const allTimeGreats = ref([
   { rank: 4, username: 'SyntaxSorcerer', contributions: 925 },
   { rank: 5, username: 'DevDragon', contributions: 870 },
 ])
-
-// You can replace this with actual data fetching logic when ready
-// const fetchLeaderboardData = async () => {
-//   try {
-//     const response = await fetch('your-api-endpoint-for-leaderboard')
-//     const data = await response.json()
-//     topHuntersLastMonth.value = data.topHuntersLastMonth
-//     allTimeGreats.value = data.allTimeGreats
-//   } catch (error) {
-//     console.error('Error fetching leaderboard data:', error)
-//   }
-// }
-
-// onMounted(() => {
-//   fetchLeaderboardData()
-// })
 </script>

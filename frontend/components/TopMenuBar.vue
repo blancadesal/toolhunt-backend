@@ -15,8 +15,9 @@
           <li><NuxtLink to="/leaderboard">Leaderboard</NuxtLink></li>
           <li><NuxtLink to="/profile">Profile</NuxtLink></li>
           <li>
-            <a v-if="authState.user" @click="logout" class="text-primary hover:text-primary-focus">Logout</a>
-            <a v-else @click="login" class="text-primary hover:text-primary-focus">Login</a>
+            <a @click="handleAuthAction" class="text-primary hover:text-primary-focus">
+              {{ isLoggedIn ? 'Logout' : 'Login' }}
+            </a>
           </li>
         </ul>
       </div>
@@ -24,8 +25,9 @@
         <li><NuxtLink to="/leaderboard" class="text-lg px-4 py-2">Leaderboard</NuxtLink></li>
         <li><NuxtLink to="/profile" class="text-lg px-4 py-2">Profile</NuxtLink></li>
         <li class="ml-2">
-          <a v-if="authState.user" @click="logout" class="btn btn-outline btn-primary normal-case">Logout</a>
-          <a v-else @click="login" class="btn btn-primary normal-case">Login</a>
+          <a @click="handleAuthAction" :class="isLoggedIn ? 'btn btn-outline btn-primary' : 'btn btn-primary'" class="normal-case">
+            {{ isLoggedIn ? 'Logout' : 'Login' }}
+          </a>
         </li>
       </ul>
     </div>
@@ -33,42 +35,18 @@
 </template>
 
 <script setup>
-const { authState, fetchUserData } = useAuth()
+const { isLoggedIn, logout, login } = useAuth()
 const router = useRouter()
-const route = useRoute()
 
-const login = async () => {
-  try {
-    const currentPath = route.fullPath
-    const response = await fetch(`http://localhost:8082/api/v1/auth/login?redirect_after=${encodeURIComponent(currentPath)}`, {
-      credentials: 'include'
-    })
-    const data = await response.json()
-    window.location.href = data.login_url
-  } catch (error) {
-    console.error('Error initiating login:', error)
-  }
-}
-
-const logout = async () => {
-  try {
-    const response = await fetch('http://localhost:8082/api/v1/auth/logout', {
-      method: 'POST',
-      credentials: 'include'
-    })
-    if (response.ok) {
-      authState.value.user = null
-      // Instead of redirecting to '/', refresh the current page
-      router.go(0)
-    } else {
-      console.error('Logout failed:', response.status)
+const handleAuthAction = async () => {
+  if (isLoggedIn.value) {
+    await logout()
+    router.go(0)
+  } else {
+    const loginUrl = await login()
+    if (loginUrl) {
+      window.location.href = loginUrl
     }
-  } catch (error) {
-    console.error('Error during logout:', error)
   }
 }
-
-onMounted(() => {
-  fetchUserData()
-})
 </script>
