@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     # FastAPI configuration
     ENVIRONMENT: Literal["dev", "prod"] = "dev"
     DATABASE_URL: str
-    TOOLHUB_API_ENDPOINT: str
+    TOOLHUB_API_BASE_URL: str = "https://toolhub-demo.wmcloud.org/api"
 
     # OAuth2 configuration
     TOOLHUB_AUTH_URL: str
@@ -30,7 +30,8 @@ class Settings(BaseSettings):
     CLIENT_SECRET: str
     REDIRECT_URI: str
     SECRET_KEY: str = secrets.token_urlsafe(32)
-    ALGORITHM: str = "HS256"
+    # 60 minutes * 24 hours * 8 days = 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
 
 
 @lru_cache()

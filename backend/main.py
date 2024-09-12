@@ -1,18 +1,18 @@
 import logging
 import secrets
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from urllib.parse import urlencode
 
-import httpx
-from fastapi import Cookie, Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2AuthorizationCodeBearer
-from jose import JWTError, jwt
-from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 
+
 from config import get_settings
+from auth import exchange_code_for_token, create_access_token, create_or_update_user, get_current_user, fetch_user_data
+from models.pydantic import User
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -27,20 +27,11 @@ app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Add your frontend URL
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# In-memory user storage
-users = {}
-
-
-class User(BaseModel):
-    id: str
-    username: str
-    email: str
 
 
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
@@ -48,8 +39,7 @@ oauth2_scheme = OAuth2AuthorizationCodeBearer(
     tokenUrl=settings.TOOLHUB_TOKEN_URL,
 )
 
-# In-memory storage for states (in production, use a proper database)
-state_storage = {}
+
 
 
 @app.get("/api/auth/login")
@@ -103,7 +93,7 @@ async def oauth_callback(request: Request, response: Response):
     logger.info(f"Fetched user data: {user_data}")
 
     db_user = create_or_update_user(user_data)
-    access_token = create_access_token(data={"sub": db_user.id})
+    access_token = create_access_token(db_user.id, timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
 
     logger.info(f"Created access token for user: {db_user.id}")
 
@@ -120,81 +110,15 @@ async def oauth_callback(request: Request, response: Response):
     return {"user": db_user.dict(), "redirect_to": redirect_after}
 
 
-async def exchange_code_for_token(code):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            settings.TOOLHUB_TOKEN_URL,
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-                "redirect_uri": settings.REDIRECT_URI,
-                "client_id": settings.CLIENT_ID,
-                "client_secret": settings.CLIENT_SECRET,
-            },
-        )
-    return response.json()
-
-
-async def fetch_user_data(access_token):
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://toolhub-demo.wmcloud.org/api/user/",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-    return response.json()
-
-
-def create_or_update_user(user_data):
-    user_id = str(user_data["id"])
-    user = User(id=user_id, username=user_data["username"], email=user_data["email"])
-    users[user_id] = user
-    return user
-
-
-def create_access_token(data: dict):
-    to_encode = data.copy()
-    expire = datetime.now(UTC) + timedelta(minutes=120)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
-
-
-# Update this function
-async def get_current_user(access_token: str = Cookie(None)):
-    if not access_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-        user = users.get(user_id)
-        if user is None:
-            raise credentials_exception
-        return user
-    except JWTError:
-        raise credentials_exception
+@app.post("/api/auth/logout")
+async def logout(response: Response):
+    response.delete_cookie(key="access_token")
+    return {"message": "Logged out successfully"}
 
 
 @app.get("/api/user")
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
-
-
-@app.post("/api/auth/logout")
-async def logout(response: Response):
-    response.delete_cookie(key="access_token")
-    return {"message": "Logged out successfully"}
 
 
 @app.get("/debug/session")
