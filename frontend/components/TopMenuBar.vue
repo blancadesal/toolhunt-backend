@@ -58,7 +58,8 @@ const logout = async () => {
     })
     if (response.ok) {
       authState.value.user = null
-      router.push('/')
+      // Instead of redirecting to '/', refresh the current page
+      router.go(0)
     } else {
       console.error('Logout failed:', response.status)
     }
