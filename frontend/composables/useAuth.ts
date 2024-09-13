@@ -30,32 +30,29 @@ export const useAuth = () => {
     }
   }
 
+  const login = () => {
+    const currentRoute = useRoute()
+    const currentPath = currentRoute.fullPath
+    apiLogin(currentPath)
+  }
+
+  const handleCallback = async (code: string, state: string) => {
+    try {
+      const { user, redirectTo } = await apiHandleCallback(code, state)
+      authState.value.user = user
+      return redirectTo
+    } catch (error) {
+      console.error('Error during login callback:', error)
+      throw error
+    }
+  }
+
   const logout = async () => {
     try {
       await apiLogout()
       authState.value.user = null
     } catch (error) {
       console.error('Error during logout:', error)
-    }
-  }
-
-  const login = async () => {
-    const currentRoute = useRoute()
-    const currentPath = currentRoute.fullPath
-    try {
-      return await apiLogin(currentPath)
-    } catch (error) {
-      console.error('Error initiating login:', error)
-      return null
-    }
-  }
-
-  const handleCallback = async (code: string, state: string) => {
-    try {
-      return await apiHandleCallback(code, state)
-    } catch (error) {
-      console.error('Error during login callback:', error)
-      throw error
     }
   }
 

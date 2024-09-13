@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 
 from config import get_settings
 from fastapi import APIRouter, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import RedirectResponse
 from security import (
     create_access_token,
     create_or_update_user,
@@ -35,7 +35,7 @@ async def login(request: Request, redirect_after: str = "/profile"):
     auth_url = f"{settings.TOOLHUB_AUTH_URL}?{urlencode(params)}"
     logger.info(f"Generated login URL: {auth_url}")
 
-    return JSONResponse(content={"login_url": auth_url})
+    return RedirectResponse(url=auth_url)
 
 
 @router.post("/callback")
@@ -82,7 +82,7 @@ async def oauth_callback(request: Request, response: Response):
         httponly=True,
         secure=True,  # Set to True if using HTTPS
         samesite="lax",
-        max_age=7200,  # 2 hours, adjust as needed
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
     )
 
     return {"user": db_user.dict(), "redirect_to": redirect_after}
