@@ -1,9 +1,9 @@
 <template>
-  <div class="navbar bg-base-100 shadow-lg text-lg">
+  <div class="navbar bg-base-100 shadow-lg text-lg py-2 sm:py-3 md:py-4 px-4 sm:px-6 md:px-8">
     <div class="flex-1">
-      <NuxtLink to="/" class="btn btn-ghost normal-case text-3xl">
-        <img src="@/assets/logo-main.svg" alt="Toolhunt Logo" class="w-14 h-14 mr-5" />
-        <span class="font-bold">Toolhunt</span>
+      <NuxtLink to="/" class="flex items-center hover:opacity-80 transition-opacity duration-200">
+        <img src="@/assets/logo-main.svg" alt="Toolhunt Logo" class="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 mr-2 sm:mr-3 md:mr-5" />
+        <span class="font-bold text-xl sm:text-2xl md:text-3xl">Toolhunt</span>
       </NuxtLink>
     </div>
     <div class="flex-none">
