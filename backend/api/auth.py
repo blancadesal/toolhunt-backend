@@ -68,9 +68,10 @@ async def oauth_callback(request: Request, response: Response):
     user_data = await fetch_user_data(token_response["access_token"])
     logger.info(f"Fetched user data: {user_data}")
 
-    db_user = create_or_update_user(user_data)
+    db_user = await create_or_update_user(user_data, token_response)
     access_token = create_access_token(
-        db_user.id, timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        subject=str(db_user.id),
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
     logger.info(f"Created access token for user: {db_user.id}")
@@ -85,7 +86,7 @@ async def oauth_callback(request: Request, response: Response):
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
     )
 
-    return {"user": db_user.dict(), "redirect_to": redirect_after}
+    return {"user": db_user.dict(exclude={"token"}), "redirect_to": redirect_after}
 
 
 @router.post("/logout")
