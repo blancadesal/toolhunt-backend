@@ -1,21 +1,32 @@
 import logging
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
-from api import auth, user
-from config import get_settings
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-# Set up logging
+from backend.api import auth, user
+from backend.config import get_settings
+from backend.db import register_tortoise
+
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    log.info("Starting up...")
+    async with register_tortoise(app):
+        log.info("Database registered.")
+        yield
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
 
-    app = FastAPI()
+    app = FastAPI(lifespan=lifespan)
 
     # Add middleware
     app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)

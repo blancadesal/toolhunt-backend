@@ -21,4 +21,4 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
-COPY ./backend /app
+COPY . /app

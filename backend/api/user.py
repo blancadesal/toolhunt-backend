@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
-from models.pydantic import User
-from security import get_current_user
+
+from backend.models.pydantic import User
+from backend.security import get_current_user
 
 router = APIRouter(prefix="/user", tags=["user"])
 

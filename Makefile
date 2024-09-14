@@ -1,4 +1,4 @@
-.PHONY: help init-db migrations migrate seed start stop restart clean lint test logs db-shell status web-shell
+.PHONY: help init-db migrations migrate seed start stop restart clean lint test logs db-shell db-exec status web-shell
 
 help:  ## Show this help message
 	@echo "Make targets:"
@@ -31,8 +31,11 @@ migrate:  ## Perform database migrations
 seed:  ## Seed the database
 	@docker-compose exec fastapi-web python scripts/seed.py
 
-db-shell:  ## Access the database shell
-	@docker-compose exec mariadb sh -c 'mysql -u $$MARIADB_USER -p$$MARIADB_PASSWORD'
+db-shell:  ## Access the mariadb shell
+	@docker-compose exec db sh -c 'mysql -u $$MARIADB_USER -p$$MARIADB_PASSWORD'
+
+db-exec:  ## Access the db shell
+	@docker-compose exec db sh
 
 web-shell:  ## Access the web shell
 	@docker-compose exec fastapi-web sh

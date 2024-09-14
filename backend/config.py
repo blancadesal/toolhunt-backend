@@ -11,12 +11,6 @@ log = logging.getLogger("uvicorn")
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file="../.env", case_sensitive=True)
 
-    # MariaDB
-    MARIADB_USER: str
-    MARIADB_PASSWORD: str
-    MARIADB_ROOT_PASSWORD: str
-    MARIADB_DATABASE: str
-
     # FastAPI configuration
     ENVIRONMENT: Literal["dev", "prod"] = "dev"
     DATABASE_URL: str

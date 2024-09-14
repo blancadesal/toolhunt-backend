@@ -3,11 +3,12 @@ import base64
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from config import get_settings
 from cryptography.fernet import Fernet
 from fastapi import Cookie, HTTPException, status
 from jose import JWTError, jwt
-from models.pydantic import Token, User, UserInDB
+
+from backend.config import get_settings
+from backend.models.pydantic import Token, User, UserInDB
 
 settings = get_settings()
 
