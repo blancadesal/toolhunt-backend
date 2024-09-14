@@ -1,17 +1,16 @@
-import asyncio
+from datetime import datetime, timedelta, UTC
+from tortoise.exceptions import DoesNotExist
+from backend.models.tortoise import User as DBUser
 
 import httpx
 from fastapi import APIRouter, Cookie, Depends, HTTPException, status
 from jose import JWTError, jwt
 
 from backend.config import get_settings
-from backend.models.pydantic import Token, User, UserInDB
+from backend.models.pydantic import Token, User
 from backend.security import ALGORITHM, decrypt_token, encrypt_token
 
 router = APIRouter(prefix="/user", tags=["user"])
-
-# In-memory user storage
-users = {}
 
 # helpers
 async def fetch_user_data(access_token):
@@ -24,11 +23,11 @@ async def fetch_user_data(access_token):
 
 
 async def get_user_token(user_id: str) -> Token:
-    if user_id not in users:
+    try:
+        user = await DBUser.get(id=user_id)
+        return await decrypt_token(user.token)
+    except DoesNotExist:
         raise HTTPException(status_code=404, detail="User not found")
-
-    user_in_db = users[user_id]
-    return await decrypt_token(user_in_db.encrypted_token)
 
 
 async def get_current_user(access_token: str = Cookie(None)) -> User:
@@ -40,11 +39,11 @@ async def get_current_user(access_token: str = Cookie(None)) -> User:
     try:
         payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
-        if not user_id or user_id not in users:
+        if not user_id:
             raise ValueError("Invalid user ID")
-        user_in_db = users[user_id]
-        return User(**user_in_db.dict(exclude={"encrypted_token"}))
-    except (JWTError, ValueError):
+        user = await DBUser.get(id=user_id)
+        return User(id=user.id, username=user.username, email=user.email)
+    except (JWTError, ValueError, DoesNotExist):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
         )
@@ -61,10 +60,17 @@ settings = get_settings()
 
 async def create_or_update_user(user_data, token_response):
     user_id = str(user_data["id"])
-    user = User(id=user_id, username=user_data["username"], email=user_data["email"])
     token = Token(**token_response)
     encrypted_token = await encrypt_token(token)
-    user_in_db = UserInDB(**user.dict(), encrypted_token=encrypted_token)
-    await asyncio.to_thread(users.update, {user_id: user_in_db})
 
-    return user
+    user, _ = await DBUser.update_or_create(
+        id=user_id,
+        defaults={
+            "username": user_data["username"],
+            "email": user_data["email"],
+            "token": encrypted_token,
+            "token_expires_at": datetime.now(UTC) + timedelta(seconds=token.expires_in)
+        }
+    )
+
+    return User(id=user.id, username=user.username, email=user.email)

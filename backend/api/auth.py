@@ -64,6 +64,7 @@ async def oauth_callback(request: Request, response: Response):
 
     token_response = await exchange_code_for_token(code)
     logger.info("Successfully exchanged code for token")
+    logger.info(f"Token response: {token_response}")
 
     user_data = await fetch_user_data(token_response["access_token"])
     logger.info(f"Fetched user data: {user_data}")
@@ -85,8 +86,9 @@ async def oauth_callback(request: Request, response: Response):
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
+    user = db_user.dict(exclude={"token", "token_expires_at"})
 
-    return {"user": db_user.dict(exclude={"token"}), "redirect_to": redirect_after}
+    return {"user": user, "redirect_to": redirect_after}
 
 
 @router.post("/logout")
