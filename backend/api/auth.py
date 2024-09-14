@@ -13,7 +13,7 @@ from backend.security import (
     exchange_code_for_token,
 )
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["auth"], include_in_schema=False)
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
