@@ -81,9 +81,9 @@ async def oauth_callback(request: Request, response: Response):
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,  # Set to True if using HTTPS
+        secure=True,
         samesite="lax",
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
     return {"user": db_user.dict(exclude={"token"}), "redirect_to": redirect_after}
