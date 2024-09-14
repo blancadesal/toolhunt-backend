@@ -5,15 +5,18 @@ const tasks = ref([]);
 const currentTaskIndex = ref(0);
 const userInput = ref('');
 const searchQuery = ref('');
+const fieldNames = ref([]);
+const selectedFields = ref([]);
+const showFieldFilter = ref(false);  // Add this line
 
 const currentTask = computed(() => tasks.value[currentTaskIndex.value] || null);
 
-const fetchTasks = async (toolName = null, fieldName = null) => {
+const fetchTasks = async (toolName = null, fieldNames = null) => {
   try {
     let url = 'http://localhost:8082/api/v1/tasks';
     const params = new URLSearchParams();
     if (toolName) params.append('tool_name', toolName);
-    if (fieldName) params.append('field_name', fieldName);
+    if (fieldNames) params.append('field_names', fieldNames);
     if (params.toString()) url += `?${params.toString()}`;
 
     const response = await fetch(url);
@@ -24,6 +27,23 @@ const fetchTasks = async (toolName = null, fieldName = null) => {
   } catch (error) {
     console.error('Error fetching tasks:', error);
     tasks.value = [];
+  }
+};
+
+const fetchFieldNames = async () => {
+  try {
+    const response = await fetch('http://localhost:8082/api/v1/fields');
+    if (!response.ok) {
+      throw new Error('Failed to fetch field names');
+    }
+    const fields = await response.json();
+    fieldNames.value = fields.map(field => ({
+      value: field,
+      label: toHumanReadable(field)
+    }));
+  } catch (error) {
+    console.error('Error fetching field names:', error);
+    fieldNames.value = [];
   }
 };
 
@@ -65,17 +85,35 @@ const searchTools = () => {
   // Implement search functionality
 };
 
-onMounted(() => fetchTasks());
+const applyFieldFilter = () => {
+  fetchTasks(null, selectedFields.value.join(','));
+};
+
+const toHumanReadable = (str) => {
+  return str
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+const toggleFieldFilter = () => {
+  showFieldFilter.value = !showFieldFilter.value;
+};
+
+onMounted(() => {
+  fetchTasks();
+  fetchFieldNames();
+});
 </script>
 
 <template>
   <div class="min-h-screen bg-base-200 flex flex-col items-center p-4">
     <h1 class="text-4xl font-bold mt-4 mb-4">Welcome to Toolhunt!</h1>
 
-    <div class="w-full max-w-lg mb-8 mt-4">
+    <div class="w-full max-w-7xl mb-8 mt-4">
       <div class="form-control">
         <div class="relative">
-          <input v-model="searchQuery" type="text" placeholder="Search for tools..." class="input input-bordered w-full pr-10" />
+          <input v-model="searchQuery" type="text" placeholder="Filter by tool" class="input input-bordered w-full pr-10" />
           <button @click="searchTools" class="absolute right-2 top-1/2 transform -translate-y-1/2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           </button>
@@ -83,7 +121,36 @@ onMounted(() => fetchTasks());
       </div>
     </div>
 
-    <div v-if="currentTask" class="card bg-base-100 shadow-xl w-full max-w-lg">
+    <div class="w-full max-w-7xl mb-4">
+      <button @click="toggleFieldFilter" class="btn btn-outline btn-secondary">
+        {{ showFieldFilter ? 'Hide Field Filter' : 'Show Field Filter' }}
+      </button>
+    </div>
+
+    <!-- Field Filter Card -->
+    <div v-if="showFieldFilter" class="card bg-base-100 shadow-xl w-full max-w-7xl mb-4">
+      <div class="card-body">
+        <h2 class="card-title text-xl mb-4">Filter by Fields</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div v-for="field in fieldNames" :key="field.value" class="flex items-center">
+            <input
+              type="checkbox"
+              :id="field.value"
+              v-model="selectedFields"
+              :value="field.value"
+              class="checkbox checkbox-secondary mr-2"
+            />
+            <label :for="field.value" class="cursor-pointer text-sm">{{ field.label }}</label>
+          </div>
+        </div>
+        <div class="card-actions justify-end mt-6">
+          <button @click="applyFieldFilter" class="btn btn-secondary">Apply Filter</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task Card -->
+    <div v-if="currentTask" class="card bg-base-100 shadow-xl w-full max-w-7xl">
       <div class="card-body">
         <h2 class="card-title text-2xl mb-2">{{ currentTask.tool.title }}</h2>
         <p class="mb-4 text-gray-600">{{ currentTask.tool.description }}</p>
