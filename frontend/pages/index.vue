@@ -8,257 +8,24 @@ const searchQuery = ref('');
 
 const currentTask = computed(() => tasks.value[currentTaskIndex.value] || null);
 
-const fetchTasks = async () => {
-  tasks.value = [
-    {
-        "field": {
-            "description": "With what type of content or data does the tool interact?",
-            "input_options": {
-                "article": "Articles",
-                "audio": "Audio",
-                "book": "Books",
-                "data::bibliography": "Bibliographic data",
-                "data::category": "Categories or labels",
-                "data::diff": "Diffs and revision data",
-                "data::event": "Event data",
-                "data::geography": "Geographic data",
-                "data::linguistic": "Linguistic data",
-                "data::page_metadata": "Page metadata",
-                "data::structured": "Structured data",
-                "data::user": "User data",
-                "discussion": "Discussions",
-                "draft": "Drafts",
-                "email": "Emails",
-                "image": "Images",
-                "link": "Links",
-                "list": "Lists",
-                "log": "Logs",
-                "map": "Maps",
-                "reference": "References",
-                "software": "Software or code",
-                "template": "Templates",
-                "video": "Videos",
-                "watchlist": "Watchlists",
-                "webpage": "Webpages",
-                "wikitext": "Wikitext"
-            },
-            "name": "content_types",
-            "pattern": null
-        },
-        "id": 1758069,
-        "tool": {
-            "description": "See [[:en:User:PrimeBOT]]",
-            "name": "toolforge-primebot",
-            "title": "A bot used by Primefac on the English Wikipedia ",
-            "url": "https://toolsadmin.wikimedia.org/tools/id/primebot"
-        }
-    },
-    {
-        "field": {
-            "description": "With what type of content or data does the tool interact?",
-            "input_options": {
-                "article": "Articles",
-                "audio": "Audio",
-                "book": "Books",
-                "data::bibliography": "Bibliographic data",
-                "data::category": "Categories or labels",
-                "data::diff": "Diffs and revision data",
-                "data::event": "Event data",
-                "data::geography": "Geographic data",
-                "data::linguistic": "Linguistic data",
-                "data::page_metadata": "Page metadata",
-                "data::structured": "Structured data",
-                "data::user": "User data",
-                "discussion": "Discussions",
-                "draft": "Drafts",
-                "email": "Emails",
-                "image": "Images",
-                "link": "Links",
-                "list": "Lists",
-                "log": "Logs",
-                "map": "Maps",
-                "reference": "References",
-                "software": "Software or code",
-                "template": "Templates",
-                "video": "Videos",
-                "watchlist": "Watchlists",
-                "webpage": "Webpages",
-                "wikitext": "Wikitext"
-            },
-            "name": "content_types",
-            "pattern": null
-        },
-        "id": 1696867,
-        "tool": {
-            "description": "Hold your queries here!",
-            "name": "toolforge-query-chest",
-            "title": "Query Chest",
-            "url": "https://query-chest.toolforge.org/"
-        }
-    },
-    {
-        "field": {
-            "description": "The manner in which the tool is used. Select one from the list of options.",
-            "input_options": {
-                "bot": "Bot",
-                "coding framework": "Coding framework",
-                "command line tool": "Command line tool",
-                "desktop app": "Desktop app",
-                "gadget": "Gadget",
-                "lua module": "LUA module",
-                "other": "Other",
-                "template": "Template",
-                "user script": "User script",
-                "web app": "Web app"
-            },
-            "name": "tool_type",
-            "pattern": null
-        },
-        "id": 1756831,
-        "tool": {
-            "description": "Tool to help with the classification of Wikidata items which do not have any classification statement.",
-            "name": "toolforge-classifywd",
-            "title": "Wikidata Classify",
-            "url": "https://toolsadmin.wikimedia.org/tools/id/classifywd"
-        }
-    },
-    {
-        "field": {
-            "description": "Wikidata item ID for the tool.",
-            "input_options": null,
-            "name": "wikidata_qid",
-            "pattern": "^Q\\d+$"
-        },
-        "id": 1703336,
-        "tool": {
-            "description": "Test deployment for Proyecto Chaco",
-            "name": "toolforge-chaco-test",
-            "title": "Test for Proyecto Chaco",
-            "url": "https://chaco-test.toolforge.org/"
-        }
-    },
-    {
-        "field": {
-            "description": "The manner in which the tool is used. Select one from the list of options.",
-            "input_options": {
-                "bot": "Bot",
-                "coding framework": "Coding framework",
-                "command line tool": "Command line tool",
-                "desktop app": "Desktop app",
-                "gadget": "Gadget",
-                "lua module": "LUA module",
-                "other": "Other",
-                "template": "Template",
-                "user script": "User script",
-                "web app": "Web app"
-            },
-            "name": "tool_type",
-            "pattern": null
-        },
-        "id": 1801859,
-        "tool": {
-            "description": "https://en.wikipedia.org/wiki/User:RichBot",
-            "name": "toolforge-richbot",
-            "title": "RichBot",
-            "url": "https://toolsadmin.wikimedia.org/tools/id/richbot"
-        }
-    },
-    {
-        "field": {
-            "description": "Is the tool targeted at helping in a specific type of wiki project or topic area?",
-            "input_options": {
-                "biography": "Biography",
-                "cultural": "Cultural heritage",
-                "education": "Education",
-                "geography": "Geography and mapping",
-                "glam": "GLAM",
-                "history": "History",
-                "language": "Language and internationalization",
-                "outreach": "Outreach",
-                "science": "Science"
-            },
-            "name": "subject_domains",
-            "pattern": null
-        },
-        "id": 1760183,
-        "tool": {
-            "description": "Tool to help add main subjects to items",
-            "name": "toolforge-itemsubjector",
-            "title": "ItemSubjector",
-            "url": "https://www.wikidata.org/wiki/Q115100941"
-        }
-    },
-    {
-        "field": {
-            "description": "A link to the tool's translation interface.",
-            "input_options": null,
-            "name": "translate_url",
-            "pattern": null
-        },
-        "id": 1797787,
-        "tool": {
-            "description": "Adds a link to the [[WP:GOCE|Guild of Copy Editors]] to the \"Navigation\" menu. Check the docs for other options.",
-            "name": "enwiki-ritenerek-goce",
-            "title": "GOCE",
-            "url": "https://en.wikipedia.org/wiki/User:Ritenerek/js/goce_nav.js"
-        }
-    },
-    {
-        "field": {
-            "description": "A link to a Wikimedia Commons file description page for an icon that depicts the tool.",
-            "input_options": null,
-            "name": "icon",
-            "pattern": "^https://commons\\.wikimedia\\.org/wiki/File:.+\\..+$"
-        },
-        "id": 1779359,
-        "tool": {
-            "description": "A site to show the top 25 most visited Wikipedia articles for a timespan.",
-            "name": "toolforge-top25report-site",
-            "title": "Top25Report Site",
-            "url": "https://top25report-site.toolforge.org/"
-        }
-    },
-    {
-        "field": {
-            "description": "Who is the intended user of the tool?",
-            "input_options": {
-                "admin": "Admins",
-                "developer": "Developers",
-                "editor": "Editors and content contributors",
-                "organizer": "Organizers and program coordinators",
-                "reader": "Readers and content consumers",
-                "researcher": "Researchers"
-            },
-            "name": "audiences",
-            "pattern": null
-        },
-        "id": 1742265,
-        "tool": {
-            "description": "Random good or excellent article on several Wikipedias",
-            "name": "random-featured",
-            "title": "random-featured",
-            "url": "https://random-featured.toolforge.org/"
-        }
-    },
-    {
-        "field": {
-            "description": "Wikidata item ID for the tool.",
-            "input_options": null,
-            "name": "wikidata_qid",
-            "pattern": "^Q\\d+$"
-        },
-        "id": 1650210,
-        "tool": {
-            "description": "Sandbox for bd808 to play with ruby things",
-            "name": "toolforge-bd808-ruby",
-            "title": "bd808's ruby sandbox",
-            "url": "https://toolsadmin.wikimedia.org/tools/id/bd808-ruby"
-        }
+const fetchTasks = async (toolName = null, fieldName = null) => {
+  try {
+    let url = 'http://localhost:8082/api/v1/tasks';
+    const params = new URLSearchParams();
+    if (toolName) params.append('tool_name', toolName);
+    if (fieldName) params.append('field_name', fieldName);
+    if (params.toString()) url += `?${params.toString()}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error('Failed to fetch tasks');
     }
-];
-
+    tasks.value = await response.json();
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    tasks.value = [];
+  }
 };
-
 
 const nextTask = () => {
   currentTaskIndex.value = (currentTaskIndex.value + 1) % tasks.value.length;
@@ -298,7 +65,7 @@ const searchTools = () => {
   // Implement search functionality
 };
 
-onMounted(fetchTasks);
+onMounted(() => fetchTasks());
 </script>
 
 <template>
