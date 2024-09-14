@@ -6,12 +6,11 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 
+from backend.api.user import create_or_update_user, fetch_user_data
 from backend.config import get_settings
 from backend.security import (
     create_access_token,
-    create_or_update_user,
     exchange_code_for_token,
-    fetch_user_data,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])

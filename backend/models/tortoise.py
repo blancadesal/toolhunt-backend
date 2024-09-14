@@ -11,4 +11,3 @@ class User(models.Model):
 
     class Meta:
         table = "users"
-
