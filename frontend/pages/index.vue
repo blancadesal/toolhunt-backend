@@ -3,14 +3,33 @@ const { isLoggedIn } = useAuth();
 
 const tasks = ref([]);
 const currentTaskIndex = ref(0);
-const userInput = ref('');
 const searchQuery = ref('');
 const fieldNames = ref([]);
 const selectedFields = ref([]);
 const showFieldFilter = ref(false);  // Add this line
+const submittedTasks = ref(new Set());
+const taskInputs = ref({});
+
+// Remove or comment out the original userInput ref
+// const userInput = ref('');
 
 const currentTask = computed(() => tasks.value[currentTaskIndex.value] || null);
 
+const currentUserInput = computed({
+  get: () => {
+    if (currentTask.value) {
+      return taskInputs.value[currentTask.value.id] || '';
+    }
+    return '';
+  },
+  set: (value) => {
+    if (currentTask.value) {
+      taskInputs.value[currentTask.value.id] = value;
+    }
+  }
+});
+
+// Update the fetchTasks function
 const fetchTasks = async (toolName = null, fieldNames = null) => {
   try {
     let url = 'http://localhost:8082/api/v1/tasks';
@@ -23,7 +42,8 @@ const fetchTasks = async (toolName = null, fieldNames = null) => {
     if (!response.ok) {
       throw new Error('Failed to fetch tasks');
     }
-    tasks.value = await response.json();
+    const newTasks = await response.json();
+    tasks.value = newTasks;
   } catch (error) {
     console.error('Error fetching tasks:', error);
     tasks.value = [];
@@ -47,18 +67,21 @@ const fetchFieldNames = async () => {
   }
 };
 
+// Update the nextTask function
 const nextTask = () => {
-  currentTaskIndex.value = (currentTaskIndex.value + 1) % tasks.value.length;
-  userInput.value = '';
+  if (currentTaskIndex.value < tasks.value.length - 1) {
+    currentTaskIndex.value++;
+  }
 };
 
 const previousTask = () => {
-  currentTaskIndex.value = (currentTaskIndex.value - 1 + tasks.value.length) % tasks.value.length;
-  userInput.value = '';
+  if (currentTaskIndex.value > 0) {
+    currentTaskIndex.value--;
+  }
 };
 
 const submitContribution = async () => {
-  if (!isLoggedIn.value) {
+  if (!isLoggedIn.value || !currentTask.value) {
     return;
   }
 
@@ -66,17 +89,19 @@ const submitContribution = async () => {
     return;
   }
 
-  // Submit contribution logic here
-  console.log(`Submitting ${userInput.value} for ${currentTask.value.tool.name}'s ${currentTask.value.field.name}`);
+  // Fake submission
+  submittedTasks.value.add(currentTask.value.id);
+
+  // Move to the next task automatically
   nextTask();
 };
 
 const validateInput = () => {
   const field = currentTask.value.field;
   if (field.input_options) {
-    return field.input_options.hasOwnProperty(userInput.value);
+    return field.input_options.hasOwnProperty(currentUserInput.value);
   } else if (field.pattern) {
-    return new RegExp(field.pattern).test(userInput.value);
+    return new RegExp(field.pattern).test(currentUserInput.value);
   }
   return true;
 };
@@ -86,7 +111,7 @@ const searchTools = () => {
 };
 
 const applyFieldFilter = () => {
-  fetchTasks(null, selectedFields.value.join(','));
+  fetchTasks(null, selectedFields.value.join(','), true);
 };
 
 const toHumanReadable = (str) => {
@@ -98,6 +123,45 @@ const toHumanReadable = (str) => {
 
 const toggleFieldFilter = () => {
   showFieldFilter.value = !showFieldFilter.value;
+};
+
+const taskIndicators = computed(() => {
+  return tasks.value.map(task => ({
+    id: task.id,
+    completed: submittedTasks.value.has(task.id)
+  }));
+});
+
+const isCurrentTaskSubmitted = computed(() => {
+  return currentTask.value && submittedTasks.value.has(currentTask.value.id);
+});
+
+const isLastTask = computed(() => currentTaskIndex.value === tasks.value.length - 1);
+const isFirstTask = computed(() => currentTaskIndex.value === 0);
+
+const loadNewBatch = async () => {
+  // Clear the current batch
+  tasks.value = [];
+  currentTaskIndex.value = 0;
+  submittedTasks.value.clear();
+  taskInputs.value = {};
+
+  // Fetch new tasks
+  await fetchTasks();
+};
+
+const isTaskChanging = ref(false);
+
+const changeTask = (direction) => {
+  isTaskChanging.value = true;
+  setTimeout(() => {
+    if (direction === 'next') {
+      nextTask();
+    } else if (direction === 'previous') {
+      previousTask();
+    }
+    isTaskChanging.value = false;
+  }, 150); // Increased to 150ms for a slightly longer transition
 };
 
 onMounted(() => {
@@ -150,13 +214,31 @@ onMounted(() => {
     </div>
 
     <!-- Task Card -->
-    <div v-if="currentTask" class="card bg-base-100 shadow-xl w-full max-w-7xl">
+    <div
+      v-if="currentTask"
+      :key="currentTask.id"
+      class="card bg-base-100 shadow-xl w-full max-w-7xl transition-all duration-150 ease-in-out"
+      :class="{ 'opacity-85': isTaskChanging }"
+    >
       <div class="card-body">
+        <!-- Task Indicators -->
+        <div class="flex justify-center mb-4 space-x-2">
+          <div
+            v-for="(indicator, index) in taskIndicators"
+            :key="indicator.id"
+            class="w-3 h-3 rounded-full border-2 border-primary transition-all duration-300"
+            :class="{
+              'bg-primary': indicator.completed,
+              'ring-2 ring-primary ring-opacity-50': index === currentTaskIndex
+            }"
+          ></div>
+        </div>
+
         <h2 class="card-title text-2xl mb-2">{{ currentTask.tool.title }}</h2>
         <p class="mb-4 text-gray-600">{{ currentTask.tool.description }}</p>
         <div class="flex items-center mb-4">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <a :href="currentTask.tool.url" target="_blank" class="text-blue-500 hover:underline">{{ currentTask.tool.url }}</a>
         </div>
@@ -171,24 +253,59 @@ onMounted(() => {
             <span class="label-text">Help complete this tool's information:</span>
           </label>
           <div v-if="currentTask.field.input_options">
-            <select v-model="userInput" class="select select-bordered w-full">
+            <select
+              v-model="currentUserInput"
+              class="select select-bordered w-full"
+              :disabled="submittedTasks.has(currentTask.id)"
+            >
               <option disabled value="">Select an option</option>
               <option v-for="(label, value) in currentTask.field.input_options" :key="value" :value="value">
                 {{ label }}
               </option>
             </select>
           </div>
-          <input v-else v-model="userInput" type="text" :placeholder="`Enter ${currentTask.field.name}`" class="input input-bordered w-full" />
+          <input
+            v-else
+            v-model="currentUserInput"
+            type="text"
+            :placeholder="`Enter ${currentTask.field.name}`"
+            class="input input-bordered w-full"
+            :disabled="submittedTasks.has(currentTask.id)"
+          />
         </div>
 
-        <div class="card-actions justify-between mt-4">
-          <button @click="previousTask" class="btn btn-outline">Previous</button>
-          <div>
-            <button @click="submitContribution" class="btn btn-primary mr-2" :disabled="!isLoggedIn">
-              {{ isLoggedIn ? 'Submit' : 'Login to Submit' }}
-            </button>
-            <button @click="nextTask" class="btn btn-ghost">Skip</button>
-          </div>
+        <div class="card-actions justify-end mt-4">
+          <button
+            v-if="!isFirstTask"
+            @click="changeTask('previous')"
+            class="btn btn-outline mr-2"
+          >
+            &lt; Previous
+          </button>
+          <button
+            @click="submitContribution"
+            class="btn btn-primary mr-2"
+            :disabled="!isLoggedIn || isCurrentTaskSubmitted || isTaskChanging"
+          >
+            {{ isCurrentTaskSubmitted ? 'Submitted' : (isLoggedIn ? 'Submit' : 'Login to Submit') }}
+          </button>
+          <button
+            v-if="!isLastTask"
+            @click="changeTask('next')"
+            :class="[
+              'btn btn-outline',
+              isCurrentTaskSubmitted ? 'btn-secondary' : 'btn-accent'
+            ]"
+          >
+            {{ isCurrentTaskSubmitted ? 'Next' : 'Skip' }} &gt;
+          </button>
+          <button
+            v-else
+            @click="loadNewBatch"
+            class="btn btn-outline btn-secondary"
+          >
+            New Batch &gt;
+          </button>
         </div>
       </div>
     </div>
