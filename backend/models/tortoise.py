@@ -1,4 +1,14 @@
+from enum import Enum
+
 from tortoise import fields, models
+
+
+class FieldType(str, Enum):
+    STRING = "string"
+    MULTI_SELECT = "multi_select"
+    SINGLE_SELECT = "single_select"
+    BOOLEAN = "boolean"
+    URI = "uri"
 
 
 class User(models.Model):
@@ -31,7 +41,10 @@ class Tool(models.Model):
 class Field(models.Model):
     name = fields.CharField(max_length=80, pk=True)
     description = fields.CharField(max_length=2047, null=False)
-    input_options = fields.CharField(max_length=2047, null=True)
+    field_type = fields.CharField(
+        max_length=20, null=False
+    )  # Changed from CharEnumField to CharField
+    input_options = fields.JSONField(null=True)
     pattern = fields.CharField(max_length=320, null=True)
 
     tasks: fields.ReverseRelation["Task"]
@@ -40,6 +53,14 @@ class Field(models.Model):
     class Meta:
         table = "field"
         charset = "binary"
+
+    @property
+    def field_type_enum(self):
+        return FieldType(self.field_type)
+
+    @field_type_enum.setter
+    def field_type_enum(self, value: FieldType):
+        self.field_type = value.value
 
 
 class Task(models.Model):

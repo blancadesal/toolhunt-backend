@@ -1,14 +1,13 @@
-import logging
 import json
+import logging
 from pathlib import Path
 
 from tortoise import Tortoise, run_async
 from tortoise.exceptions import DoesNotExist, IntegrityError
 
-from scripts.update_db import run_pipeline
 from backend.db import TORTOISE_ORM
-from backend.models.tortoise import CompletedTask, Field, Tool
-
+from backend.models.tortoise import CompletedTask, Field, FieldType, Tool
+from scripts.update_db import run_pipeline
 
 logging.basicConfig(
     filename="db_update.log",
@@ -41,16 +40,58 @@ async def insert_fields():
 
     for field_data in fields_data:
         try:
-            await Field.get_or_create(
+            field_type_str = field_data.get("type", "string")
+            logger.info(
+                f"Processing field {field_data['name']} with type {field_type_str}"
+            )
+
+            if (
+                not field_type_str
+                or field_type_str.upper() not in FieldType.__members__
+            ):
+                logger.warning(
+                    f"Invalid field type '{field_type_str}' for field '{field_data['name']}'. Defaulting to STRING."
+                )
+                field_type = FieldType.STRING
+            else:
+                field_type = FieldType[field_type_str.upper()]
+
+            logger.info(f"Assigned FieldType: {field_type}")
+
+            field, created = await Field.get_or_create(
                 name=field_data["name"],
                 defaults={
                     "description": field_data["description"],
+                    "field_type": field_type.value,  # Use the string value
                     "input_options": json.dumps(field_data.get("input_options", None)),
                     "pattern": field_data.get("pattern", None),
                 },
             )
-        except IntegrityError:
-            logger.info(f"Field {field_data['name']} already exists.")
+            if not created:
+                field.field_type = field_type.value
+                field.description = field_data["description"]
+                field.input_options = json.dumps(field_data.get("input_options", None))
+                field.pattern = field_data.get("pattern", None)
+                await field.save()
+
+            logger.info(
+                f"Field {field_data['name']} {'created' if created else 'updated'} with type {field_type.value}"
+            )
+
+            # Verify the field was saved correctly
+            saved_field = await Field.get(name=field_data["name"])
+            logger.info(
+                f"Verified: Field {saved_field.name} has type {saved_field.field_type}"
+            )
+
+        except Exception as e:
+            logger.error(f"Error processing field {field_data['name']}: {str(e)}")
+            logger.error(f"Field data: {field_data}")
+
+    # After processing all fields, verify all entries
+    all_fields = await Field.all()
+    for field in all_fields:
+        logger.info(f"Final check: Field {field.name} has type {field.field_type}")
 
 
 async def insert_tools():

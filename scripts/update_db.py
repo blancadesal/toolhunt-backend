@@ -12,11 +12,11 @@ import logging
 from dataclasses import dataclass
 
 from tortoise import run_async
-from tortoise.exceptions import IntegrityError, DoesNotExist
+from tortoise.exceptions import DoesNotExist, IntegrityError
 
-from backend.utils import ToolhubClient
 from backend.config import get_settings
 from backend.models.tortoise import Field, Task, Tool
+from backend.utils import ToolhubClient
 
 settings = get_settings()
 
@@ -162,9 +162,13 @@ async def update_task_table(tools, timestamp):
                     f"Task created or updated: tool={tool.name}, field={field_name}"
                 )
             except IntegrityError:
-                logger.info(f"Task for tool {tool.name} and field {field_name} already exists.")
+                logger.info(
+                    f"Task for tool {tool.name} and field {field_name} already exists."
+                )
             except DoesNotExist:
-                logger.warning(f"Tool or Field does not exist for task with tool {tool.name} and field {field_name}.")
+                logger.warning(
+                    f"Tool or Field does not exist for task with tool {tool.name} and field {field_name}."
+                )
 
     await remove_stale_tasks(timestamp)
 
