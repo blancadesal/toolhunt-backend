@@ -22,6 +22,7 @@ class FieldSchema(BaseModel):
     pattern: Optional[str] = PydanticField(None, max_length=320)
 
     class Config:
+        from_attributes = True
         use_enum_values = True
 
 
