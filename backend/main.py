@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-from backend.api import auth, user
+from backend.api import auth, task, user
 from backend.config import get_settings
 from backend.db import register_tortoise
 
@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 def create_app() -> FastAPI:
     settings = get_settings()
 
-    app = FastAPI(lifespan=lifespan)
+    app = FastAPI(title="Toolhunt", lifespan=lifespan)
 
     # Add middleware
     app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
@@ -44,6 +44,7 @@ def create_app() -> FastAPI:
     # Include other routers
     api_router.include_router(auth.router)
     api_router.include_router(user.router)
+    api_router.include_router(task.router)
 
     app.include_router(api_router)
 
