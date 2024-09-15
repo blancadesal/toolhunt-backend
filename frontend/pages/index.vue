@@ -1,4 +1,10 @@
 <script setup>
+import { ref, computed, onMounted, watch, watchEffect } from 'vue';
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
+import { useAuth } from '@/composables/useAuth';
+import { debounce } from 'lodash-es';
+
 const { isLoggedIn } = useAuth();
 
 const tasks = ref([]);
@@ -11,12 +17,21 @@ const submittedTasks = ref(new Set());
 const taskInputs = ref({});
 const appliedFilters = ref(0);
 
+const annotationsSchema = ref(null);
+const fieldSchema = ref(null);
+const validateField = ref(null);
+const validationErrors = ref([]);
+
 const currentTask = computed(() => tasks.value[currentTaskIndex.value] || null);
 
 const currentUserInput = computed({
   get: () => {
     if (currentTask.value) {
-      return taskInputs.value[currentTask.value.id] || '';
+      const input = taskInputs.value[currentTask.value.id];
+      if (isArrayType.value) {
+        return Array.isArray(input) ? input : [];
+      }
+      return input ?? '';
     }
     return '';
   },
@@ -64,15 +79,137 @@ const fetchFieldNames = async () => {
   }
 };
 
-const nextTask = () => {
-  if (currentTaskIndex.value < tasks.value.length - 1) {
-    currentTaskIndex.value++;
+const fetchAnnotationsSchema = async () => {
+  try {
+    const response = await fetch('http://localhost:8082/api/v1/schema');
+    if (!response.ok) {
+      throw new Error('Failed to fetch annotations schema');
+    }
+    const schemaData = await response.json();
+    annotationsSchema.value = schemaData;
+  } catch (error) {
+    console.error('Error fetching annotations schema:', error);
   }
 };
 
-const previousTask = () => {
-  if (currentTaskIndex.value > 0) {
-    currentTaskIndex.value--;
+const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
+addFormats(ajv);
+
+const repositoryUrlPattern = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+
+ajv.addFormat('repositoryUrl', {
+  validate: (str) => repositoryUrlPattern.test(str)
+});
+
+watch(annotationsSchema, (newValue) => {
+  if (newValue) {
+    const schemas = newValue.schemas;
+    for (const [key, schema] of Object.entries(schemas)) {
+      ajv.addSchema(schema, `#/schemas/${key}`);
+    }
+  }
+});
+
+watch([annotationsSchema, currentTask], ([annotationsSchemaValue, currentTaskValue]) => {
+  if (annotationsSchemaValue && currentTaskValue && currentTaskValue.field) {
+    const fieldName = currentTaskValue.field.name;
+    const annotationsProperties = annotationsSchemaValue.schemas.Annotations.properties;
+    if (annotationsProperties && annotationsProperties[fieldName]) {
+      let fieldSchemaValue = {
+        ...annotationsProperties[fieldName],
+        $id: `#/fieldSchema/${fieldName}`
+      };
+
+      // Handle nullable fields
+      if (fieldSchemaValue.nullable === true) {
+        fieldSchemaValue = {
+          oneOf: [
+            { type: 'null' },
+            { ...fieldSchemaValue, nullable: undefined }
+          ]
+        };
+      }
+
+      // Add custom validation for repository field
+      if (fieldName === 'repository') {
+        fieldSchemaValue.format = 'repositoryUrl';
+      }
+
+      fieldSchema.value = fieldSchemaValue;
+    } else {
+      fieldSchema.value = null;
+    }
+  } else {
+    fieldSchema.value = null;
+  }
+});
+
+watch(fieldSchema, (newFieldSchema) => {
+  if (newFieldSchema) {
+    try {
+      validateField.value = ajv.compile(newFieldSchema);
+    } catch (e) {
+      console.error('Error compiling validator for field:', e);
+      validateField.value = null;
+    }
+  } else {
+    validateField.value = null;
+  }
+});
+
+const debouncedValidate = debounce(() => {
+  if (validateField.value) {
+    const input = currentUserInput.value;
+    const isValid = validateField.value(input);
+    validationErrors.value = isValid ? [] : (validateField.value.errors || []);
+  } else {
+    validationErrors.value = [];
+  }
+}, 300);
+
+watchEffect(() => {
+  debouncedValidate();
+});
+
+const errorMessage = (error) => {
+  if (currentTask.value && currentTask.value.field.name === 'repository') {
+    if (error.keyword === 'format') {
+      return 'Please enter a valid repository URL (e.g., https://github.com/username/repository)';
+    }
+  }
+  return error.message;
+};
+
+const validateInput = () => {
+  if (validateField.value) {
+    const input = currentUserInput.value;
+    const isValid = validateField.value(input);
+    validationErrors.value = isValid ? [] : (validateField.value.errors || []);
+    return isValid;
+  }
+  return true;
+};
+
+const fieldSchemaType = computed(() => {
+  return fieldSchema.value ? fieldSchema.value.type : null;
+});
+
+const isArrayType = computed(() => {
+  return fieldSchema.value && fieldSchema.value.type === 'array';
+});
+
+const addArrayItem = () => {
+  if (isArrayType.value) {
+    if (!Array.isArray(currentUserInput.value)) {
+      currentUserInput.value = [];
+    }
+    currentUserInput.value.push('');
+  }
+};
+
+const removeArrayItem = (index) => {
+  if (isArrayType.value && Array.isArray(currentUserInput.value)) {
+    currentUserInput.value.splice(index, 1);
   }
 };
 
@@ -92,14 +229,16 @@ const submitContribution = async () => {
   nextTask();
 };
 
-const validateInput = () => {
-  const field = currentTask.value.field;
-  if (field.input_options) {
-    return field.input_options.hasOwnProperty(currentUserInput.value);
-  } else if (field.pattern) {
-    return new RegExp(field.pattern).test(currentUserInput.value);
+const nextTask = () => {
+  if (currentTaskIndex.value < tasks.value.length - 1) {
+    currentTaskIndex.value++;
   }
-  return true;
+};
+
+const previousTask = () => {
+  if (currentTaskIndex.value > 0) {
+    currentTaskIndex.value--;
+  }
 };
 
 const searchTools = () => {
@@ -168,9 +307,40 @@ const changeTask = (direction) => {
   }, 150); // Increased to 150ms for a slightly longer transition
 };
 
+const getPlaceholder = (fieldName) => {
+  switch (fieldName) {
+    case 'repository':
+      return 'Enter repository URL (e.g., https://github.com/username/repository)';
+    case 'api_url':
+      return 'Enter API URL';
+    case 'bugtracker_url':
+      return 'Enter bug tracker URL';
+    case 'translate_url':
+      return 'Enter translation interface URL';
+    default:
+      return `Enter ${fieldName}`;
+  }
+};
+
+const getInputType = (fieldName) => {
+  switch (fieldName) {
+    case 'repository':
+    case 'api_url':
+    case 'bugtracker_url':
+    case 'translate_url':
+      return 'url';
+    case 'deprecated':
+    case 'experimental':
+      return 'checkbox';
+    default:
+      return 'text';
+  }
+};
+
 onMounted(() => {
   fetchTasks();
   fetchFieldNames();
+  fetchAnnotationsSchema();
 });
 </script>
 
@@ -196,9 +366,9 @@ onMounted(() => {
         </svg>
         Field Filter
       </button>
-      <button 
+      <button
         v-if="appliedFilters > 0"
-        @click="clearFilters" 
+        @click="clearFilters"
         class="btn btn-outline btn-primary"
       >
         Clear Filters ({{ appliedFilters }})
@@ -222,9 +392,9 @@ onMounted(() => {
           </div>
         </div>
         <div class="card-actions justify-end mt-6">
-          <button 
-            @click="applyFieldFilter" 
-            class="btn btn-secondary" 
+          <button
+            @click="applyFieldFilter"
+            class="btn btn-secondary"
             :disabled="selectedFields.length === 0"
           >
             Apply Filter
@@ -272,8 +442,14 @@ onMounted(() => {
           <label class="label">
             <span class="label-text">Help complete this tool's information:</span>
           </label>
-          <div v-if="currentTask.field.input_options">
+          <div v-if="currentTask && currentTask.field">
+            <label class="label">
+              <span class="label-text">{{ currentTask.field.description || `Enter ${currentTask.field.name}` }}</span>
+            </label>
+
+            <!-- Single select dropdown -->
             <select
+              v-if="currentTask.field.input_options && !isArrayType"
               v-model="currentUserInput"
               class="select select-bordered w-full"
               :disabled="submittedTasks.has(currentTask.id)"
@@ -283,15 +459,54 @@ onMounted(() => {
                 {{ label }}
               </option>
             </select>
+
+            <!-- Checkbox group for multi-select -->
+            <div v-else-if="currentTask.field.input_options && isArrayType" class="space-y-2">
+              <div v-for="(label, value) in currentTask.field.input_options" :key="value" class="flex items-center">
+                <input
+                  :id="`checkbox-${value}`"
+                  type="checkbox"
+                  :value="value"
+                  v-model="currentUserInput"
+                  class="checkbox checkbox-primary"
+                  :disabled="submittedTasks.has(currentTask.id)"
+                />
+                <label :for="`checkbox-${value}`" class="ml-2 cursor-pointer">{{ label }}</label>
+              </div>
+            </div>
+
+            <!-- Array input for non-predefined options -->
+            <div v-else-if="isArrayType" class="space-y-2">
+              <div v-for="(item, index) in currentUserInput" :key="index" class="flex items-center space-x-2">
+                <input
+                  v-model="currentUserInput[index]"
+                  type="text"
+                  :placeholder="`Enter item ${index + 1}`"
+                  class="input input-bordered flex-grow"
+                  :disabled="submittedTasks.has(currentTask.id)"
+                />
+                <button @click="removeArrayItem(index)" class="btn btn-ghost btn-sm" :disabled="submittedTasks.has(currentTask.id)">X</button>
+              </div>
+              <button @click="addArrayItem" class="btn btn-ghost btn-sm" :disabled="submittedTasks.has(currentTask.id)">+ Add Item</button>
+            </div>
+
+            <!-- Single input for non-array types -->
+            <input
+              v-else
+              v-model="currentUserInput"
+              :type="getInputType(currentTask.field.name)"
+              :placeholder="getPlaceholder(currentTask.field.name)"
+              class="input input-bordered w-full"
+              :disabled="submittedTasks.has(currentTask.id)"
+            />
+
+            <!-- Validation Errors -->
+            <div v-if="validationErrors.length > 0" class="text-red-500 text-sm mt-1">
+              <div v-for="error in validationErrors" :key="error.instancePath">
+                {{ errorMessage(error) }}
+              </div>
+            </div>
           </div>
-          <input
-            v-else
-            v-model="currentUserInput"
-            type="text"
-            :placeholder="`Enter ${currentTask.field.name}`"
-            class="input input-bordered w-full"
-            :disabled="submittedTasks.has(currentTask.id)"
-          />
         </div>
 
         <div class="card-actions justify-end mt-4">
