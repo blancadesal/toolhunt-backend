@@ -1,5 +1,4 @@
 <script setup>
-
 const { isLoggedIn } = useAuth();
 
 const tasks = ref([]);
@@ -11,7 +10,6 @@ const showFieldFilter = ref(false);
 const submittedTasks = ref(new Set());
 const taskInputs = ref({});
 const appliedFilters = ref(0);
-const isClosing = ref(false);
 
 const currentTask = computed(() => tasks.value[currentTaskIndex.value] || null);
 
@@ -110,7 +108,6 @@ const searchTools = () => {
 
 const toggleFieldFilter = () => {
   showFieldFilter.value = !showFieldFilter.value;
-  isClosing.value = false;
 };
 
 const applyFieldFilter = () => {
@@ -123,14 +120,6 @@ const clearFilters = () => {
   selectedFields.value = [];
   appliedFilters.value = 0;
   fetchTasks();
-
-  if (showFieldFilter.value) {
-    isClosing.value = true;
-    setTimeout(() => {
-      showFieldFilter.value = false;
-      isClosing.value = false;
-    }, 300); // Match this duration with the CSS transition duration
-  }
 };
 
 const toHumanReadable = (str) => {
@@ -201,21 +190,15 @@ onMounted(() => {
     </div>
 
     <div class="w-full max-w-7xl mb-4 flex">
-      <button
-        @click="toggleFieldFilter"
-        :class="[
-          'btn mr-2',
-          showFieldFilter ? 'btn-secondary' : 'btn-outline btn-secondary'
-        ]"
-      >
+      <button @click="toggleFieldFilter" class="btn btn-outline btn-secondary mr-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
         </svg>
-        {{ showFieldFilter ? 'Hide Filter' : 'Field Filter' }}
+        Field Filter
       </button>
-      <button
+      <button 
         v-if="appliedFilters > 0"
-        @click="clearFilters"
+        @click="clearFilters" 
         class="btn btn-outline btn-primary"
       >
         Clear Filters ({{ appliedFilters }})
@@ -223,35 +206,32 @@ onMounted(() => {
     </div>
 
     <!-- Field Filter Card -->
-    <transition
-      enter-active-class="transition-all duration-200 ease-out"
-      enter-from-class="opacity-0 transform scale-95"
-      enter-to-class="opacity-100 transform scale-100"
-      leave-active-class="transition-all duration-200 ease-in"
-      leave-from-class="opacity-100 transform scale-100"
-      leave-to-class="opacity-0 transform scale-95"
-    >
-      <div v-if="showFieldFilter && !isClosing" class="card bg-base-100 shadow-xl w-full max-w-7xl mb-4">
-        <div class="card-body">
-          <h2 class="card-title text-xl mb-4">Filter by Fields</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div v-for="field in fieldNames" :key="field.value" class="flex items-center">
-              <input
-                type="checkbox"
-                :id="field.value"
-                v-model="selectedFields"
-                :value="field.value"
-                class="checkbox checkbox-secondary mr-2"
-              />
-              <label :for="field.value" class="cursor-pointer text-sm">{{ field.label }}</label>
-            </div>
-          </div>
-          <div class="card-actions justify-end mt-6">
-            <button @click="applyFieldFilter" class="btn btn-secondary">Apply Filter</button>
+    <div v-if="showFieldFilter" class="card bg-base-100 shadow-xl w-full max-w-7xl mb-4">
+      <div class="card-body">
+        <h2 class="card-title text-xl mb-4">Filter by Fields</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div v-for="field in fieldNames" :key="field.value" class="flex items-center">
+            <input
+              type="checkbox"
+              :id="field.value"
+              v-model="selectedFields"
+              :value="field.value"
+              class="checkbox checkbox-secondary mr-2"
+            />
+            <label :for="field.value" class="cursor-pointer text-sm">{{ field.label }}</label>
           </div>
         </div>
+        <div class="card-actions justify-end mt-6">
+          <button 
+            @click="applyFieldFilter" 
+            class="btn btn-secondary" 
+            :disabled="selectedFields.length === 0"
+          >
+            Apply Filter
+          </button>
+        </div>
       </div>
-    </transition>
+    </div>
 
     <!-- Task Card -->
     <div
