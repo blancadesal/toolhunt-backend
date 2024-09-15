@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch, watchEffect } from 'vue';
+import { ref, computed, onMounted, watch, watchEffect, onBeforeUnmount, nextTick } from 'vue';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { useAuth } from '@/composables/useAuth';
@@ -337,10 +337,38 @@ const getInputType = (fieldName) => {
   }
 };
 
+const handleKeydown = (event) => {
+  if (event.key === 'ArrowLeft' && !isFirstTask.value) {
+    changeTask('previous');
+  } else if (event.key === 'ArrowRight' && !isLastTask.value) {
+    changeTask('next');
+  }
+};
+
+const inputRef = ref(null);
+
+const focusInput = () => {
+  nextTick(() => {
+    if (inputRef.value && !isArrayType.value && !currentTask.value.field.input_options) {
+      inputRef.value.focus();
+    }
+  });
+};
+
+watch(currentTask, () => {
+  focusInput();
+});
+
 onMounted(() => {
   fetchTasks();
   fetchFieldNames();
   fetchAnnotationsSchema();
+  window.addEventListener('keydown', handleKeydown);
+  focusInput();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
 });
 </script>
 
@@ -360,10 +388,10 @@ onMounted(() => {
     </div>
 
     <div class="w-full max-w-7xl mb-4 flex">
-      <button 
-        @click="toggleFieldFilter" 
+      <button
+        @click="toggleFieldFilter"
         :class="[
-          'btn mr-2', 
+          'btn mr-2',
           showFieldFilter ? 'btn-secondary' : 'btn-outline btn-secondary'
         ]"
       >
@@ -445,9 +473,6 @@ onMounted(() => {
         </div>
 
         <div class="form-control">
-          <label class="label">
-            <span class="label-text">Help complete this tool's information:</span>
-          </label>
           <div v-if="currentTask && currentTask.field">
             <label class="label">
               <span class="label-text">{{ currentTask.field.description || `Enter ${currentTask.field.name}` }}</span>
@@ -499,11 +524,13 @@ onMounted(() => {
             <!-- Single input for non-array types -->
             <input
               v-else
+              ref="inputRef"
               v-model="currentUserInput"
               :type="getInputType(currentTask.field.name)"
               :placeholder="getPlaceholder(currentTask.field.name)"
               class="input input-bordered w-full"
               :disabled="submittedTasks.has(currentTask.id)"
+              @keyup.enter="submitContribution"
             />
 
             <!-- Validation Errors -->
@@ -538,7 +565,7 @@ onMounted(() => {
               isCurrentTaskSubmitted ? 'btn-secondary' : 'btn-accent'
             ]"
           >
-            {{ isCurrentTaskSubmitted ? 'Next' : 'Skip' }} &gt;
+            Next &gt;
           </button>
           <button
             v-else
