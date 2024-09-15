@@ -9,7 +9,7 @@ router = APIRouter(prefix="/fields", tags=["fields"])
 
 
 @router.get(
-    "/",
+    "",
     response_model=List[str],
     responses={404: {"model": HTTPNotFoundError}},
 )

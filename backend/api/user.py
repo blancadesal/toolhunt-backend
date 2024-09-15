@@ -51,7 +51,7 @@ async def get_current_user(access_token: str = Cookie(None)) -> User:
 
 
 # endpoints
-@router.get("/")
+@router.get("")
 async def read_user(current_user: User = Depends(get_current_user)):
     return current_user
 

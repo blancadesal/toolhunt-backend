@@ -91,7 +91,7 @@ async def get_task_from_db(task_id: int) -> TaskSchema:
 
 # Routes
 @router.get(
-    "/",
+    "",
     response_model=List[TaskSchema],
     responses={404: {"model": HTTPNotFoundError}},
 )
