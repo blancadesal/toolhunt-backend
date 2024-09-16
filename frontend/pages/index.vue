@@ -265,6 +265,12 @@ const clearFilters = () => {
 };
 
 const toHumanReadable = (str) => {
+  // Handle special cases like 'data::category'
+  if (str.includes('::')) {
+    return str.split('::').map(part => toHumanReadable(part)).join(' - ');
+  }
+  
+  // Convert snake_case to Title Case
   return str
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -380,17 +386,22 @@ const fieldInputOptions = computed(() => {
   const fieldProperties = annotationsSchema.value.schemas.Annotations.properties;
   const fieldSchema = fieldProperties[fieldName];
 
+  let options = [];
+
   if (fieldSchema?.type === 'array' && fieldSchema.items?.$ref) {
     const enumName = fieldSchema.items.$ref.split('/').pop();
     const enumSchema = annotationsSchema.value.schemas[enumName];
-    return enumSchema?.enum || [];
+    options = enumSchema?.enum || [];
   } else if (fieldSchema?.allOf && fieldSchema.allOf[0]?.$ref) {
     const enumName = fieldSchema.allOf[0].$ref.split('/').pop();
     const enumSchema = annotationsSchema.value.schemas[enumName];
-    return enumSchema?.enum || [];
+    options = enumSchema?.enum || [];
   }
 
-  return [];
+  return options.map(option => ({
+    value: option,
+    label: toHumanReadable(option)
+  }));
 });
 
 onMounted(() => {
@@ -519,22 +530,22 @@ onBeforeUnmount(() => {
               class="select select-bordered w-full"
             >
               <option disabled value="">Select an option</option>
-              <option v-for="option in fieldInputOptions" :key="option" :value="option">
-                {{ option }}
+              <option v-for="option in fieldInputOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
               </option>
             </select>
 
             <!-- Checkbox group for multi-select (for array types) -->
             <div v-else-if="isArrayType && fieldInputOptions.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              <div v-for="option in fieldInputOptions" :key="option" class="flex items-center">
+              <div v-for="option in fieldInputOptions" :key="option.value" class="flex items-center">
                 <input
-                  :id="`checkbox-${option}`"
+                  :id="`checkbox-${option.value}`"
                   type="checkbox"
-                  :value="option"
+                  :value="option.value"
                   v-model="currentUserInput"
                   class="checkbox checkbox-primary mr-2"
                 />
-                <label :for="`checkbox-${option}`" class="cursor-pointer">{{ option }}</label>
+                <label :for="`checkbox-${option.value}`" class="cursor-pointer">{{ option.label }}</label>
               </div>
             </div>
 
