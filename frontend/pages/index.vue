@@ -492,17 +492,17 @@ onBeforeUnmount(() => {
             </select>
 
             <!-- Checkbox group for multi-select -->
-            <div v-else-if="currentTask.field.input_options && isArrayType" class="space-y-2">
+            <div v-else-if="currentTask.field.input_options && isArrayType" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
               <div v-for="(label, value) in currentTask.field.input_options" :key="value" class="flex items-center">
                 <input
                   :id="`checkbox-${value}`"
                   type="checkbox"
                   :value="value"
                   v-model="currentUserInput"
-                  class="checkbox checkbox-primary"
+                  class="checkbox checkbox-primary mr-2"
                   :disabled="submittedTasks.has(currentTask.id)"
                 />
-                <label :for="`checkbox-${value}`" class="ml-2 cursor-pointer">{{ label }}</label>
+                <label :for="`checkbox-${value}`" class="cursor-pointer">{{ label }}</label>
               </div>
             </div>
 
