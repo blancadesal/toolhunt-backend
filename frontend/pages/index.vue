@@ -167,6 +167,12 @@ watchEffect(() => {
 const validateInput = () => {
   if (validateField.value) {
     const input = currentUserInput.value;
+    
+    // Check for empty array selection
+    if (isArrayType.value && Array.isArray(input) && input.length === 0) {
+      return false;
+    }
+    
     return validateField.value(input);
   }
   return true;
@@ -598,7 +604,7 @@ onBeforeUnmount(() => {
           <button
             @click="submitContribution"
             class="btn btn-primary mr-2"
-            :disabled="!isLoggedIn || isCurrentTaskSubmitted || isTaskChanging"
+            :disabled="!isLoggedIn || isCurrentTaskSubmitted || isTaskChanging || (isArrayType && Array.isArray(currentUserInput) && currentUserInput.length === 0)"
           >
             {{ isCurrentTaskSubmitted ? 'Submitted' : (isLoggedIn ? 'Submit' : 'Login to Submit') }}
           </button>
