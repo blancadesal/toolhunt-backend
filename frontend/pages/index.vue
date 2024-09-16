@@ -110,7 +110,7 @@ watch(annotationsSchema, (newValue) => {
 
 watch([annotationsSchema, currentTask], ([annotationsSchemaValue, currentTaskValue]) => {
   if (annotationsSchemaValue && currentTaskValue && currentTaskValue.field) {
-    const fieldName = currentTaskValue.field.name;
+    const fieldName = currentTaskValue.field;
     const annotationsProperties = annotationsSchemaValue.schemas.Annotations.properties;
     if (annotationsProperties && annotationsProperties[fieldName]) {
       let fieldSchemaValue = {
@@ -170,7 +170,7 @@ watchEffect(() => {
 });
 
 const errorMessage = (error) => {
-  if (currentTask.value && currentTask.value.field.name === 'repository') {
+  if (currentTask.value && currentTask.value.field === 'repository') {
     if (error.keyword === 'format') {
       return 'Please enter a valid repository URL (e.g., https://github.com/username/repository)';
     }
@@ -193,7 +193,12 @@ const fieldSchemaType = computed(() => {
 });
 
 const isArrayType = computed(() => {
-  return fieldSchema.value && fieldSchema.value.type === 'array';
+  if (!annotationsSchema.value || !currentTask.value || !currentTask.value.field) {
+    return false;
+  }
+  const fieldName = currentTask.value.field;
+  const fieldProperties = annotationsSchema.value.schemas.Annotations.properties;
+  return fieldProperties[fieldName]?.type === 'array';
 });
 
 const addArrayItem = () => {
@@ -357,6 +362,37 @@ watch(currentTask, () => {
   focusInput();
 });
 
+const fieldDescription = computed(() => {
+  if (annotationsSchema.value && currentTask.value && currentTask.value.field) {
+    const fieldName = currentTask.value.field;
+    const fieldProperties = annotationsSchema.value.schemas.Annotations.properties;
+    return fieldProperties[fieldName]?.description || `Enter ${toHumanReadable(fieldName)}`;
+  }
+  return '';
+});
+
+const fieldInputOptions = computed(() => {
+  if (!annotationsSchema.value || !currentTask.value || !currentTask.value.field) {
+    return [];
+  }
+
+  const fieldName = currentTask.value.field;
+  const fieldProperties = annotationsSchema.value.schemas.Annotations.properties;
+  const fieldSchema = fieldProperties[fieldName];
+
+  if (fieldSchema?.type === 'array' && fieldSchema.items?.$ref) {
+    const enumName = fieldSchema.items.$ref.split('/').pop();
+    const enumSchema = annotationsSchema.value.schemas[enumName];
+    return enumSchema?.enum || [];
+  } else if (fieldSchema?.allOf && fieldSchema.allOf[0]?.$ref) {
+    const enumName = fieldSchema.allOf[0].$ref.split('/').pop();
+    const enumSchema = annotationsSchema.value.schemas[enumName];
+    return enumSchema?.enum || [];
+  }
+
+  return [];
+});
+
 onMounted(() => {
   fetchTasks();
   fetchFieldNames();
@@ -466,41 +502,39 @@ onBeforeUnmount(() => {
         </div>
         <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
           <p class="font-bold">Missing Information:</p>
-          <p>{{ currentTask.field.name }}</p>
-          <p class="text-sm mt-2">{{ currentTask.field.description }}</p>
+          <p>{{ toHumanReadable(currentTask.field) }}</p>
+          <p class="text-sm mt-2">{{ fieldDescription }}</p>
         </div>
 
         <div class="form-control">
           <div v-if="currentTask && currentTask.field">
             <label class="label">
-              <span class="label-text">{{ currentTask.field.description || `Enter ${currentTask.field.name}` }}</span>
+              <span class="label-text">{{ fieldDescription }}</span>
             </label>
 
-            <!-- Single select dropdown -->
+            <!-- Single select dropdown (for tool_type and other non-array types with options) -->
             <select
-              v-if="currentTask.field.input_options && !isArrayType"
+              v-if="!isArrayType && fieldInputOptions.length > 0"
               v-model="currentUserInput"
               class="select select-bordered w-full"
-              :disabled="submittedTasks.has(currentTask.id)"
             >
               <option disabled value="">Select an option</option>
-              <option v-for="(label, value) in currentTask.field.input_options" :key="value" :value="value">
-                {{ label }}
+              <option v-for="option in fieldInputOptions" :key="option" :value="option">
+                {{ option }}
               </option>
             </select>
 
-            <!-- Checkbox group for multi-select -->
-            <div v-else-if="currentTask.field.input_options && isArrayType" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              <div v-for="(label, value) in currentTask.field.input_options" :key="value" class="flex items-center">
+            <!-- Checkbox group for multi-select (for array types) -->
+            <div v-else-if="isArrayType && fieldInputOptions.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              <div v-for="option in fieldInputOptions" :key="option" class="flex items-center">
                 <input
-                  :id="`checkbox-${value}`"
+                  :id="`checkbox-${option}`"
                   type="checkbox"
-                  :value="value"
+                  :value="option"
                   v-model="currentUserInput"
                   class="checkbox checkbox-primary mr-2"
-                  :disabled="submittedTasks.has(currentTask.id)"
                 />
-                <label :for="`checkbox-${value}`" class="cursor-pointer">{{ label }}</label>
+                <label :for="`checkbox-${option}`" class="cursor-pointer">{{ option }}</label>
               </div>
             </div>
 
@@ -512,11 +546,10 @@ onBeforeUnmount(() => {
                   type="text"
                   :placeholder="`Enter item ${index + 1}`"
                   class="input input-bordered flex-grow"
-                  :disabled="submittedTasks.has(currentTask.id)"
                 />
-                <button @click="removeArrayItem(index)" class="btn btn-ghost btn-sm" :disabled="submittedTasks.has(currentTask.id)">X</button>
+                <button @click="removeArrayItem(index)" class="btn btn-ghost btn-sm">X</button>
               </div>
-              <button @click="addArrayItem" class="btn btn-ghost btn-sm" :disabled="submittedTasks.has(currentTask.id)">+ Add Item</button>
+              <button @click="addArrayItem" class="btn btn-ghost btn-sm">+ Add Item</button>
             </div>
 
             <!-- Single input for non-array types -->
@@ -524,10 +557,9 @@ onBeforeUnmount(() => {
               v-else
               ref="inputRef"
               v-model="currentUserInput"
-              :type="getInputType(currentTask.field.name)"
-              :placeholder="getPlaceholder(currentTask.field.name)"
+              :type="getInputType(currentTask.field)"
+              :placeholder="getPlaceholder(currentTask.field)"
               class="input input-bordered w-full"
-              :disabled="submittedTasks.has(currentTask.id)"
               @keyup.enter="submitContribution"
             />
 

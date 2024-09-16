@@ -15,7 +15,7 @@ from tortoise import run_async
 from tortoise.exceptions import DoesNotExist, IntegrityError
 
 from backend.config import get_settings
-from backend.models.tortoise import Field, Task, Tool
+from backend.models.tortoise import Task, Tool
 from backend.utils import ToolhubClient
 
 settings = get_settings()
@@ -113,12 +113,10 @@ async def update_tool_table(tools, timestamp):
 async def upsert_task(tool, field):
     """Inserts a task in the Task table if it doesn't exist or updates a timestamp."""
     await Task.update_or_create(
-        tool_name=tool,
-        field_name=field,
+        tool=tool,
+        field=field,
     )
-    logger.info(
-        f"Task created or already exists: tool_name={tool.name}, field_name={field.name}"
-    )
+    logger.info(f"Task created or already exists: tool_name={tool.name}, field={field}")
 
 
 async def remove_stale_tasks(timestamp):
@@ -127,7 +125,7 @@ async def remove_stale_tasks(timestamp):
     stale_tasks = await Task.filter(last_updated__lt=timestamp).all()
     for task in stale_tasks:
         logger.info(
-            f"Removing task: tool_name={task.tool_name_id}, field_name={task.field_name_id}, last_updated={task.last_updated}"
+            f"Removing task: tool_name={task.tool.name}, field={task.field}, last_updated={task.last_updated}"
         )
     await Task.filter(last_updated__lt=timestamp).delete()
 
@@ -138,10 +136,9 @@ async def update_task_table(tools, timestamp):
         for field_name in tool.missing_annotations:
             try:
                 tool_instance = await Tool.get(name=tool.name)
-                field_instance = await Field.get(name=field_name)
                 await Task.update_or_create(
                     tool=tool_instance,
-                    field=field_instance,
+                    field=field_name,
                 )
                 logger.info(
                     f"Task created or updated: tool={tool.name}, field={field_name}"
@@ -152,7 +149,7 @@ async def update_task_table(tools, timestamp):
                 )
             except DoesNotExist:
                 logger.warning(
-                    f"Tool or Field does not exist for task with tool {tool.name} and field {field_name}."
+                    f"Tool does not exist for task with tool {tool.name} and field {field_name}."
                 )
 
     await remove_stale_tasks(timestamp)

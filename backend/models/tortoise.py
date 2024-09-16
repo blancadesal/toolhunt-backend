@@ -1,14 +1,4 @@
-from enum import Enum
-
 from tortoise import fields, models
-
-
-class FieldType(str, Enum):
-    STRING = "string"
-    MULTI_SELECT = "multi_select"
-    SINGLE_SELECT = "single_select"
-    BOOLEAN = "boolean"
-    URI = "uri"
 
 
 class User(models.Model):
@@ -38,37 +28,12 @@ class Tool(models.Model):
         charset = "binary"
 
 
-class Field(models.Model):
-    name = fields.CharField(max_length=80, pk=True)
-    description = fields.CharField(max_length=2047, null=False)
-    field_type = fields.CharField(
-        max_length=20, null=False
-    )  # Changed from CharEnumField to CharField
-    input_options = fields.JSONField(null=True)
-    pattern = fields.CharField(max_length=320, null=True)
-
-    tasks: fields.ReverseRelation["Task"]
-    completed_tasks: fields.ReverseRelation["CompletedTask"]
-
-    class Meta:
-        table = "field"
-        charset = "binary"
-
-    @property
-    def field_type_enum(self):
-        return FieldType(self.field_type)
-
-    @field_type_enum.setter
-    def field_type_enum(self, value: FieldType):
-        self.field_type = value.value
-
-
 class Task(models.Model):
     id = fields.IntField(pk=True)
     tool = fields.ForeignKeyField(
         "models.Tool", related_name="tasks", on_delete=fields.CASCADE
     )
-    field = fields.ForeignKeyField("models.Field", related_name="tasks")
+    field = fields.CharField(max_length=80, null=False)
     last_attempted = fields.DatetimeField(null=True)
     times_attempted = fields.IntField(default=0)
     last_updated = fields.DatetimeField(auto_now=True)
@@ -80,7 +45,7 @@ class Task(models.Model):
 
 
 class CompletedTask(models.Model):
-    id = fields.IntField(pk=True, generated=True)  # Ensure id is auto-incremented
+    id = fields.IntField(pk=True, generated=True)
     tool = fields.ForeignKeyField(
         "models.Tool",
         related_name="completed_tasks",
@@ -88,12 +53,7 @@ class CompletedTask(models.Model):
         null=True,
     )
     tool_title = fields.CharField(max_length=255, null=False)
-    field = fields.ForeignKeyField(
-        "models.Field",
-        related_name="completed_tasks",
-        on_delete=fields.SET_NULL,
-        null=True,
-    )
+    field = fields.CharField(max_length=80, null=False)
     user = fields.CharField(max_length=255, null=False)
     completed_date = fields.DatetimeField(null=False)
 

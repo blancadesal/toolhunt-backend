@@ -7,7 +7,7 @@ from tortoise.contrib.fastapi import HTTPNotFoundError
 from tortoise.expressions import Q
 
 from backend.config import get_settings
-from backend.models.pydantic import FieldSchema, TaskSchema, ToolSchema
+from backend.models.pydantic import TaskSchema, ToolSchema
 from backend.models.tortoise import Task
 
 router = APIRouter(prefix="/tasks")
@@ -19,11 +19,11 @@ settings = get_settings()
 async def get_tasks_from_db(
     field_names: Optional[str] = None, tool_name: Optional[str] = None
 ) -> List[TaskSchema]:
-    query = Task.all().prefetch_related("tool", "field")
+    query = Task.all().prefetch_related("tool")
 
     if field_names:
         field_name_list = [name.strip() for name in field_names.split(",")]
-        query = query.filter(field__name__in=field_name_list)
+        query = query.filter(field__in=field_name_list)
     if tool_name:
         query = query.filter(tool__name=tool_name)
 
@@ -52,20 +52,14 @@ async def get_tasks_from_db(
                 description=task.tool.description,
                 url=task.tool.url,
             ),
-            field=FieldSchema(
-                name=task.field.name,
-                description=task.field.description,
-                field_type=task.field.field_type_enum,
-                input_options=task.field.input_options,
-                pattern=task.field.pattern,
-            ),
+            field=task.field,
         )
         for task in random_tasks
     ]
 
 
 async def get_task_from_db(task_id: int) -> TaskSchema:
-    query = Task.filter(id=task_id).prefetch_related("tool", "field")
+    query = Task.filter(id=task_id).prefetch_related("tool")
     task = await query.first()
 
     if not task:
@@ -79,13 +73,7 @@ async def get_task_from_db(task_id: int) -> TaskSchema:
             description=task.tool.description,
             url=task.tool.url,
         ),
-        field=FieldSchema(
-            name=task.field.name,
-            description=task.field.description,
-            field_type=task.field.field_type_enum,
-            input_options=task.field.input_options,
-            pattern=task.field.pattern,
-        ),
+        field=task.field,
     )
 
 
