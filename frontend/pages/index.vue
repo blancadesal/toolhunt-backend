@@ -269,7 +269,7 @@ const toHumanReadable = (str) => {
   if (str.includes('::')) {
     return str.split('::').map(part => toHumanReadable(part)).join(' - ');
   }
-  
+
   // Convert snake_case to Title Case
   return str
     .split('_')
@@ -465,9 +465,9 @@ onBeforeUnmount(() => {
               :id="field.value"
               v-model="selectedFields"
               :value="field.value"
-              class="checkbox checkbox-secondary mr-2"
+              class="checkbox checkbox-secondary border-2 mr-2"
             />
-            <label :for="field.value" class="cursor-pointer text-sm">{{ field.label }}</label>
+            <label :for="field.value" class="cursor-pointer text-m">{{ field.label }}</label>
           </div>
         </div>
         <div class="card-actions justify-end mt-6">
@@ -489,8 +489,14 @@ onBeforeUnmount(() => {
       class="card bg-base-100 shadow-xl w-full max-w-7xl transition-all duration-150 ease-in-out"
       :class="{ 'opacity-85': isTaskChanging }"
     >
+      <!-- Task Type Banner -->
+      <div class="bg-secondary text-secondary-content p-2 rounded-t-xl">
+        <p class="text-center font-semibold">
+          Task: {{ toHumanReadable(currentTask.field) }}
+        </p>
+      </div>
       <div class="card-body">
-        <!-- Task Indicators -->
+        <!-- Task Progress Indicators -->
         <div class="flex justify-center mb-4 space-x-2">
           <div
             v-for="(indicator, index) in taskIndicators"
@@ -503,24 +509,22 @@ onBeforeUnmount(() => {
           ></div>
         </div>
 
-        <h2 class="card-title text-2xl mb-2">{{ currentTask.tool.title }}</h2>
-        <p class="mb-4 text-gray-600">{{ currentTask.tool.description }}</p>
-        <div class="flex items-center mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <a :href="currentTask.tool.url" target="_blank" class="text-blue-500 hover:underline">{{ currentTask.tool.url }}</a>
-        </div>
-        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
-          <p class="font-bold">Missing Information:</p>
-          <p>{{ toHumanReadable(currentTask.field) }}</p>
-          <p class="text-sm mt-2">{{ fieldDescription }}</p>
-        </div>
+    <!-- Tool Info Section -->
+    <div class="bg-secondary bg-opacity-10 p-4 shadow-sm rounded-lg">
+      <h2 class="card-title text-2xl mb-2">{{ currentTask.tool.title }}</h2>
+      <p class="mb-4 text-gray-600">{{ currentTask.tool.description }}</p>
+      <div class="flex items-center mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+        </svg>
+        <a :href="currentTask.tool.url" target="_blank" class="text-blue-500 hover:underline">{{ currentTask.tool.url }}</a>
+      </div>
+    </div>
 
         <div class="form-control">
           <div v-if="currentTask && currentTask.field">
             <label class="label">
-              <span class="label-text">{{ fieldDescription }}</span>
+              <span class="label-text text-lg font-semibold mb-4">{{ fieldDescription }}</span>
             </label>
 
             <!-- Single select dropdown (for tool_type and other non-array types with options) -->
@@ -543,7 +547,7 @@ onBeforeUnmount(() => {
                   type="checkbox"
                   :value="option.value"
                   v-model="currentUserInput"
-                  class="checkbox checkbox-primary mr-2"
+                  class="checkbox checkbox-primary border-2 mr-2"
                 />
                 <label :for="`checkbox-${option.value}`" class="cursor-pointer">{{ option.label }}</label>
               </div>
@@ -601,10 +605,7 @@ onBeforeUnmount(() => {
           <button
             v-if="!isLastTask"
             @click="changeTask('next')"
-            :class="[
-              'btn btn-outline',
-              isCurrentTaskSubmitted ? 'btn-secondary' : 'btn-accent'
-            ]"
+            class="btn btn-outline btn-secondary"
           >
             Next &gt;
           </button>
