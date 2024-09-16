@@ -188,9 +188,6 @@ const validateInput = () => {
   return true;
 };
 
-const fieldSchemaType = computed(() => {
-  return fieldSchema.value ? fieldSchema.value.type : null;
-});
 
 const isArrayType = computed(() => {
   if (!annotationsSchema.value || !currentTask.value || !currentTask.value.field) {
@@ -533,6 +530,7 @@ onBeforeUnmount(() => {
               v-if="!isArrayType && fieldInputOptions.length > 0"
               v-model="currentUserInput"
               class="select select-bordered w-full"
+              :disabled="isCurrentTaskSubmitted"
             >
               <option disabled value="">Select an option</option>
               <option v-for="option in fieldInputOptions" :key="option.value" :value="option.value">
@@ -549,6 +547,7 @@ onBeforeUnmount(() => {
                   :value="option.value"
                   v-model="currentUserInput"
                   class="checkbox checkbox-primary border-2 mr-2"
+                  :disabled="isCurrentTaskSubmitted"
                 />
                 <label :for="`checkbox-${option.value}`" class="cursor-pointer">{{ option.label }}</label>
               </div>
@@ -562,10 +561,11 @@ onBeforeUnmount(() => {
                   type="text"
                   :placeholder="`Enter item ${index + 1}`"
                   class="input input-bordered flex-grow"
+                  :disabled="isCurrentTaskSubmitted"
                 />
-                <button @click="removeArrayItem(index)" class="btn btn-ghost btn-sm">X</button>
+                <button @click="removeArrayItem(index)" class="btn btn-ghost btn-sm" :disabled="isCurrentTaskSubmitted">X</button>
               </div>
-              <button @click="addArrayItem" class="btn btn-ghost btn-sm">+ Add Item</button>
+              <button @click="addArrayItem" class="btn btn-ghost btn-sm" :disabled="isCurrentTaskSubmitted">+ Add Item</button>
             </div>
 
             <!-- Single input for non-array types -->
@@ -577,6 +577,7 @@ onBeforeUnmount(() => {
               :placeholder="getPlaceholder(currentTask.field)"
               class="input input-bordered w-full"
               @keyup.enter="submitContribution"
+              :disabled="isCurrentTaskSubmitted"
             />
 
             <!-- Validation Errors -->
