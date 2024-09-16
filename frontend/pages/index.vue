@@ -421,7 +421,7 @@ onBeforeUnmount(() => {
   <div class="min-h-screen bg-base-200 flex flex-col items-center p-4">
     <h1 class="text-4xl font-bold mt-4 mb-4">Welcome to Toolhunt!</h1>
 
-    <div class="w-full max-w-2xl mb-8 mt-4">
+    <div class="w-full max-w-2xl mb-4 mt-4">
       <div class="form-control">
         <div class="relative">
           <input v-model="searchQuery" type="text" placeholder="Filter by tool" class="input input-bordered w-full pr-10" />
@@ -432,11 +432,12 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="w-full max-w-2xl mb-4 flex">
+    <!-- Field Filter -->
+		<div class="w-full max-w-2xl mb-4 flex">
       <button
         @click="toggleFieldFilter"
         :class="[
-          'btn mr-2',
+          'btn btn-sm mr-2',
           showFieldFilter ? 'btn-secondary' : 'btn-outline btn-secondary'
         ]"
       >
@@ -448,7 +449,7 @@ onBeforeUnmount(() => {
       <button
         v-if="appliedFilters > 0"
         @click="clearFilters"
-        class="btn btn-outline btn-primary"
+        class="btn btn-sm btn-outline btn-primary"
       >
         Clear Filters ({{ appliedFilters }})
       </button>
@@ -473,7 +474,7 @@ onBeforeUnmount(() => {
         <div class="card-actions justify-end mt-6">
           <button
             @click="applyFieldFilter"
-            class="btn btn-secondary"
+            class="btn btn-sm btn-secondary"
             :disabled="selectedFields.length === 0"
           >
             Apply Filter
@@ -490,8 +491,8 @@ onBeforeUnmount(() => {
       :class="{ 'opacity-85': isTaskChanging }"
     >
       <!-- Task Type Banner -->
-      <div class="bg-secondary text-secondary-content p-2 rounded-t-xl">
-        <p class="text-center font-semibold">
+      <div class="bg-secondary bg-opacity-90 text-secondary-content p-2 rounded-t-xl">
+        <p class="text-center text-lg font-semibold">
           Task: {{ toHumanReadable(currentTask.field) }}
         </p>
       </div>
@@ -510,9 +511,9 @@ onBeforeUnmount(() => {
         </div>
 
     <!-- Tool Info Section -->
-    <div class="bg-secondary bg-opacity-10 p-4 shadow-sm rounded-lg">
-      <h2 class="card-title text-2xl mb-2">{{ currentTask.tool.title }}</h2>
-      <p class="mb-4 text-gray-600">{{ currentTask.tool.description }}</p>
+    <div class="bg-secondary bg-opacity-10 p-4 mb-2 shadow-md rounded-lg">
+      <h2 class="card-title text-primary-content text-2xl mb-4">{{ currentTask.tool.title }}</h2>
+      <p class="mb-4 text-primary-content">{{ currentTask.tool.description }}</p>
       <div class="flex items-center mb-4">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
