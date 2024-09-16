@@ -33,21 +33,6 @@ logging.basicConfig(
 
 logger = logging.getLogger()
 
-# Parameters
-ANNOTATIONS = {
-    "audiences",
-    "content_types",
-    "tasks",
-    "subject_domains",
-    "wikidata_qid",
-    "icon",
-    "tool_type",
-    "repository",
-    "api_url",
-    "translate_url",
-    "bugtracker_url",
-}
-
 
 # Functions
 @dataclass
@@ -68,7 +53,7 @@ def is_deprecated(tool):
     return tool["deprecated"] or tool["annotations"]["deprecated"]
 
 
-def get_missing_annotations(tool_info, filter_by=ANNOTATIONS):
+def get_missing_annotations(tool_info, filter_by=settings.active_annotations):
     missing = set()
 
     for k, v in tool_info["annotations"].items():

@@ -27,6 +27,34 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     ENCRYPTION_KEY: str
 
+    # Annotations to update
+    ANNOTATIONS: dict[str, bool] = {
+        "audiences": True,
+        "content_types": True,
+        "tasks": True,
+        "subject_domains": True,
+        "wikidata_qid": True,
+        "icon": True,
+        "tool_type": True,
+        "repository": True,
+        "api_url": True,
+        "translate_url": True,
+        "bugtracker_url": True,
+        "deprecated": False,
+        "replaced_by": False,
+        "experimental": False,
+        "for_wikis": False,
+        "available_ui_languages": False,
+        "developer_docs_url": False,
+        "user_docs_url": False,
+        "feedback_url": False,
+        "privacy_policy_url": False,
+    }
+
+    @property
+    def active_annotations(self) -> set[str]:
+        return {k for k, v in self.ANNOTATIONS.items() if v}
+
 
 @lru_cache()
 def get_settings() -> Settings:
