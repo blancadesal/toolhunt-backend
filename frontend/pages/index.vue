@@ -18,7 +18,8 @@ const appliedFilters = ref(0);
 const annotationsSchema = ref(null);
 const fieldSchema = ref(null);
 const validateField = ref(null);
-const validationErrors = ref([]);
+const validationError = ref('');
+const hasAttemptedSubmit = ref(false);
 
 const currentTask = computed(() => tasks.value[currentTaskIndex.value] || null);
 
@@ -93,12 +94,6 @@ const fetchAnnotationsSchema = async () => {
 const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
 addFormats(ajv);
 
-const repositoryUrlPattern = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
-
-ajv.addFormat('repositoryUrl', {
-  validate: (str) => repositoryUrlPattern.test(str)
-});
-
 watch(annotationsSchema, (newValue) => {
   if (newValue) {
     const schemas = newValue.schemas;
@@ -128,9 +123,9 @@ watch([annotationsSchema, currentTask], ([annotationsSchemaValue, currentTaskVal
         };
       }
 
-      // Add custom validation for repository field
+      // Use built-in uri format for repository field
       if (fieldName === 'repository') {
-        fieldSchemaValue.format = 'repositoryUrl';
+        fieldSchemaValue.format = 'uri';
       }
 
       fieldSchema.value = fieldSchemaValue;
@@ -159,9 +154,9 @@ const debouncedValidate = debounce(() => {
   if (validateField.value) {
     const input = currentUserInput.value;
     const isValid = validateField.value(input);
-    validationErrors.value = isValid ? [] : (validateField.value.errors || []);
+    validationError.value = isValid ? '' : 'Invalid input';
   } else {
-    validationErrors.value = [];
+    validationError.value = '';
   }
 }, 300);
 
@@ -169,48 +164,12 @@ watchEffect(() => {
   debouncedValidate();
 });
 
-const errorMessage = (error) => {
-  if (currentTask.value && currentTask.value.field === 'repository') {
-    if (error.keyword === 'format') {
-      return 'Please enter a valid repository URL (e.g., https://github.com/username/repository)';
-    }
-  }
-  return error.message;
-};
-
 const validateInput = () => {
   if (validateField.value) {
     const input = currentUserInput.value;
-    const isValid = validateField.value(input);
-    validationErrors.value = isValid ? [] : (validateField.value.errors || []);
-    return isValid;
+    return validateField.value(input);
   }
   return true;
-};
-
-
-const isArrayType = computed(() => {
-  if (!annotationsSchema.value || !currentTask.value || !currentTask.value.field) {
-    return false;
-  }
-  const fieldName = currentTask.value.field;
-  const fieldProperties = annotationsSchema.value.schemas.Annotations.properties;
-  return fieldProperties[fieldName]?.type === 'array';
-});
-
-const addArrayItem = () => {
-  if (isArrayType.value) {
-    if (!Array.isArray(currentUserInput.value)) {
-      currentUserInput.value = [];
-    }
-    currentUserInput.value.push('');
-  }
-};
-
-const removeArrayItem = (index) => {
-  if (isArrayType.value && Array.isArray(currentUserInput.value)) {
-    currentUserInput.value.splice(index, 1);
-  }
 };
 
 const submitContribution = async () => {
@@ -218,15 +177,35 @@ const submitContribution = async () => {
     return;
   }
 
+  hasAttemptedSubmit.value = true;
+
   if (!validateInput()) {
+    validationError.value = 'Invalid input';
     return;
   }
+
+  // Clear any existing error
+  validationError.value = '';
 
   // Fake submission
   submittedTasks.value.add(currentTask.value.id);
 
   // Move to the next task automatically
   nextTask();
+};
+
+const changeTask = (direction) => {
+  isTaskChanging.value = true;
+  validationError.value = ''; // Clear the error message when changing tasks
+  hasAttemptedSubmit.value = false; // Reset the submit attempt flag
+  setTimeout(() => {
+    if (direction === 'next') {
+      nextTask();
+    } else if (direction === 'previous') {
+      previousTask();
+    }
+    isTaskChanging.value = false;
+  }, 150);
 };
 
 const nextTask = () => {
@@ -288,6 +267,11 @@ const isCurrentTaskSubmitted = computed(() => {
 const isLastTask = computed(() => currentTaskIndex.value === tasks.value.length - 1);
 const isFirstTask = computed(() => currentTaskIndex.value === 0);
 
+const resetState = () => {
+  validationError.value = '';
+  hasAttemptedSubmit.value = false;
+};
+
 const loadNewBatch = async () => {
   // Clear the current batch
   tasks.value = [];
@@ -295,23 +279,14 @@ const loadNewBatch = async () => {
   submittedTasks.value.clear();
   taskInputs.value = {};
 
+  // Reset the state
+  resetState();
+
   // Fetch new tasks, maintaining the selected field filters
   await fetchTasks(null, selectedFields.value.length > 0 ? selectedFields.value.join(',') : null);
 };
 
 const isTaskChanging = ref(false);
-
-const changeTask = (direction) => {
-  isTaskChanging.value = true;
-  setTimeout(() => {
-    if (direction === 'next') {
-      nextTask();
-    } else if (direction === 'previous') {
-      previousTask();
-    }
-    isTaskChanging.value = false;
-  }, 150); // Increased to 150ms for a slightly longer transition
-};
 
 const getPlaceholder = (fieldName) => {
   switch (fieldName) {
@@ -401,12 +376,37 @@ const fieldInputOptions = computed(() => {
   }));
 });
 
+const isArrayType = computed(() => {
+  if (!annotationsSchema.value || !currentTask.value || !currentTask.value.field) {
+    return false;
+  }
+  const fieldName = currentTask.value.field;
+  const fieldProperties = annotationsSchema.value.schemas.Annotations.properties;
+  return fieldProperties[fieldName]?.type === 'array';
+});
+
+const addArrayItem = () => {
+  if (isArrayType.value) {
+    if (!Array.isArray(currentUserInput.value)) {
+      currentUserInput.value = [];
+    }
+    currentUserInput.value.push('');
+  }
+};
+
+const removeArrayItem = (index) => {
+  if (isArrayType.value && Array.isArray(currentUserInput.value)) {
+    currentUserInput.value.splice(index, 1);
+  }
+};
+
 onMounted(() => {
   fetchTasks();
   fetchFieldNames();
   fetchAnnotationsSchema();
   window.addEventListener('keydown', handleKeydown);
   focusInput();
+  resetState();
 });
 
 onBeforeUnmount(() => {
@@ -580,11 +580,9 @@ onBeforeUnmount(() => {
               :disabled="isCurrentTaskSubmitted"
             />
 
-            <!-- Validation Errors -->
-            <div v-if="validationErrors.length > 0" class="text-red-500 text-sm mt-1">
-              <div v-for="error in validationErrors" :key="error.instancePath">
-                {{ errorMessage(error) }}
-              </div>
+            <!-- Validation Error -->
+            <div v-if="hasAttemptedSubmit && validationError" class="text-error text-sm mt-1">
+              {{ validationError }}
             </div>
           </div>
         </div>
