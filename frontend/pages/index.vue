@@ -167,12 +167,12 @@ watchEffect(() => {
 const validateInput = () => {
   if (validateField.value) {
     const input = currentUserInput.value;
-    
+
     // Check for empty array selection
     if (isArrayType.value && Array.isArray(input) && input.length === 0) {
       return false;
     }
-    
+
     return validateField.value(input);
   }
   return true;

@@ -42,6 +42,7 @@ const router = useRouter()
 const menuItems = [
   { to: '/leaderboard', label: 'Leaderboard' },
   { to: '/profile', label: 'Profile' },
+  { to: '/about', label: 'About' },
 ]
 
 const handleAuthAction = async () => {
