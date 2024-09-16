@@ -421,7 +421,7 @@ onBeforeUnmount(() => {
   <div class="min-h-screen bg-base-200 flex flex-col items-center p-4">
     <h1 class="text-4xl font-bold mt-4 mb-4">Welcome to Toolhunt!</h1>
 
-    <div class="w-full max-w-7xl mb-8 mt-4">
+    <div class="w-full max-w-2xl mb-8 mt-4">
       <div class="form-control">
         <div class="relative">
           <input v-model="searchQuery" type="text" placeholder="Filter by tool" class="input input-bordered w-full pr-10" />
@@ -432,7 +432,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="w-full max-w-7xl mb-4 flex">
+    <div class="w-full max-w-2xl mb-4 flex">
       <button
         @click="toggleFieldFilter"
         :class="[
