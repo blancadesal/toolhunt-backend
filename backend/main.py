@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-from backend.api import auth, field, task, tool, user
+from backend.api import auth, field, metrics, task, tool, user
 from backend.config import get_settings
 from backend.db import register_tortoise
 
@@ -51,6 +51,7 @@ def create_app() -> FastAPI:
     api_router.include_router(task.router)
     api_router.include_router(field.router)
     api_router.include_router(tool.router)
+    api_router.include_router(metrics.router)
 
     app.include_router(api_router)
 
