@@ -1,4 +1,6 @@
 <script setup>
+const { isLoggedIn, logout, login } = useAuth()
+const router = useRouter()
 
 const menuItems = [
   { to: '/leaderboard', label: 'Leaderboard' },
