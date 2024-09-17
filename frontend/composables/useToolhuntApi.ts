@@ -3,12 +3,13 @@
 import { ref } from 'vue'
 import type { Ref } from 'vue'
 import { toolhuntApi } from '~/utils/ToolhuntApiClient'
-import type { Task, AnnotationsSchema } from '~/utils/ToolhuntApiClient'
+import type { Task, AnnotationsSchema, ContributionsResponse, ContributionsParams } from '~/utils/ToolhuntApiClient'
 
 export function useToolhuntApi() {
   const tasks: Ref<Task[]> = ref([])
   const fieldNames: Ref<string[]> = ref([])
   const annotationsSchema: Ref<AnnotationsSchema | null> = ref(null)
+  const contributions: Ref<ContributionsResponse | null> = ref(null)
 
   const fetchTasks = async (toolName: string | null = null, fieldNames: string | null = null): Promise<void> => {
     try {
@@ -37,12 +38,23 @@ export function useToolhuntApi() {
     }
   }
 
+  const fetchContributions = async (params?: ContributionsParams): Promise<void> => {
+    try {
+      contributions.value = await toolhuntApi.fetchContributions(params)
+    } catch (error) {
+      console.error('Error fetching contributions:', error)
+      contributions.value = null
+    }
+  }
+
   return {
     tasks,
     fieldNames,
     annotationsSchema,
     fetchTasks,
     fetchFieldNames,
-    fetchAnnotationsSchema
+    fetchAnnotationsSchema,
+    contributions,
+    fetchContributions
   }
 }

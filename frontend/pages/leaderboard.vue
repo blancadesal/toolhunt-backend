@@ -1,25 +1,21 @@
 <script setup>
+const { contributions, fetchContributions } = useToolhuntApi()
 
-const topHuntersLastMonth = ref([]);
-const allTimeGreats = ref([]);
+const topHuntersLastMonth = ref([])
+const allTimeGreats = ref([])
 
-const fetchContributions = async (days = undefined, limit = undefined) => {
-  try {
-    const params = {};
-    if (days !== undefined) params.days = days;
-    if (limit !== undefined) params.limit = limit;
-    const response = await toolhuntApi.fetchContributions(params);
-    return response.contributions;
-  } catch (error) {
-    console.error('Error fetching contributions:', error);
-    return [];
-  }
-};
+const getContributions = async (days = undefined, limit = undefined) => {
+  const params = {}
+  if (days !== undefined) params.days = days
+  if (limit !== undefined) params.limit = limit
+  await fetchContributions(params)
+  return contributions.value?.contributions || []
+}
 
 onMounted(async () => {
-  topHuntersLastMonth.value = await fetchContributions(30, 5);  // Top 10 for last 30 days
-  allTimeGreats.value = await fetchContributions(undefined, 10);  // Top 20 all-time
-});
+  topHuntersLastMonth.value = await getContributions(30, 5)  // Top 5 for last 30 days
+  allTimeGreats.value = await getContributions(undefined, 10)  // Top 10 all-time
+})
 </script>
 
 <template>
