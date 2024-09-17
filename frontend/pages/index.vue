@@ -10,7 +10,6 @@ const currentTaskIndex = ref(0);
 const searchQuery = ref('');
 const selectedFields = ref([]);
 const isLoading = ref(true);
-const isTaskChanging = ref(false);
 const taskCardRef = ref(null);
 
 const isArrayType = computed(() => {
@@ -86,31 +85,6 @@ const validateInput = (input) => {
   return true;
 };
 
-const changeTask = (direction) => {
-  isTaskChanging.value = true;
-  validationError.value = '';
-  setTimeout(() => {
-    if (direction === 'next') {
-      nextTask();
-    } else if (direction === 'previous') {
-      previousTask();
-    }
-    isTaskChanging.value = false;
-  }, 150);
-};
-
-const nextTask = () => {
-  if (currentTaskIndex.value < tasks.value.length - 1) {
-    currentTaskIndex.value++;
-  }
-};
-
-const previousTask = () => {
-  if (currentTaskIndex.value > 0) {
-    currentTaskIndex.value--;
-  }
-};
-
 const searchTools = () => {
   // Implement search functionality
 };
@@ -169,7 +143,10 @@ const submitContribution = async (input) => {
   }
 
   validationError.value = '';
-  nextTask();
+  // The actual submission logic would go here
+  console.log('Contribution submitted:', input);
+  
+  // We don't need to call nextTask() here anymore as it's handled in the TaskCard component
 };
 
 const loadNewBatch = async () => {
@@ -225,12 +202,11 @@ onMounted(async () => {
       :tasks="tasks"
       :current-task-index="currentTaskIndex"
       :annotations-schema="annotationsSchema"
-      :is-task-changing="isTaskChanging"
       :field-input-options="fieldInputOptions"
       :is-array-type="isArrayType"
       :validation-error="validationError"
       :validate-input="validateInput"
-      @change-task="changeTask"
+      @update:current-task-index="currentTaskIndex = $event"
       @submit-contribution="submitContribution"
       @load-new-batch="loadNewBatch"
       @update:validation-error="validationError = $event"

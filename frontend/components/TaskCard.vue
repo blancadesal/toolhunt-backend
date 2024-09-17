@@ -6,7 +6,6 @@ const props = defineProps({
   tasks: Array,
   currentTaskIndex: Number,
   annotationsSchema: Object,
-  isTaskChanging: Boolean,
   fieldInputOptions: Array,
   isArrayType: Boolean,
   validationError: String,
@@ -14,7 +13,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'change-task',
+  'update:current-task-index',
   'submit-contribution',
   'load-new-batch',
   'update:validation-error'
@@ -29,8 +28,6 @@ const hasAttemptedSubmit = ref(false);
 const taskInputs = ref({});
 
 const currentTask = computed(() => props.tasks[props.currentTaskIndex] || null);
-const isFirstTask = computed(() => props.currentTaskIndex === 0);
-const isLastTask = computed(() => props.currentTaskIndex === props.tasks.length - 1);
 
 const isCurrentTaskSubmitted = computed(() => {
   return currentTask.value && submittedTasks.value.has(currentTask.value.id);
@@ -108,14 +105,6 @@ const removeArrayItem = (index) => {
   }
 };
 
-const handleKeydown = (event) => {
-  if (event.key === 'ArrowLeft' && !isFirstTask.value) {
-    emit('change-task', 'previous');
-  } else if (event.key === 'ArrowRight' && !isLastTask.value) {
-    emit('change-task', 'next');
-  }
-};
-
 const handleEnterKey = (event) => {
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();
@@ -155,6 +144,8 @@ const submitContribution = () => {
   // Reset isSubmitting after a short delay
   setTimeout(() => {
     isSubmitting.value = false;
+    // Move to the next task after successful submission
+    changeTask('next');
   }, 300);
 };
 
@@ -202,6 +193,44 @@ const taskIndicators = computed(() => {
     completed: submittedTasks.value.has(task.id)
   }));
 });
+
+const isTaskChanging = ref(false);
+
+const changeTask = (direction) => {
+  isTaskChanging.value = true;
+  emit('update:validation-error', '');
+  setTimeout(() => {
+    if (direction === 'next') {
+      nextTask();
+    } else if (direction === 'previous') {
+      previousTask();
+    }
+    isTaskChanging.value = false;
+  }, 150);
+};
+
+const nextTask = () => {
+  if (!isLastTask.value) {
+    emit('update:current-task-index', props.currentTaskIndex + 1);
+  }
+};
+
+const previousTask = () => {
+  if (!isFirstTask.value) {
+    emit('update:current-task-index', props.currentTaskIndex - 1);
+  }
+};
+
+const isFirstTask = computed(() => props.currentTaskIndex === 0);
+const isLastTask = computed(() => props.currentTaskIndex === props.tasks.length - 1);
+
+const handleKeydown = (event) => {
+  if (event.key === 'ArrowLeft' && !isFirstTask.value) {
+    changeTask('previous');
+  } else if (event.key === 'ArrowRight' && !isLastTask.value) {
+    changeTask('next');
+  }
+};
 </script>
 
 <template>
@@ -319,7 +348,7 @@ const taskIndicators = computed(() => {
       <div class="card-actions justify-end mt-4">
         <button
           v-if="!isFirstTask"
-          @click="$emit('change-task', 'previous')"
+          @click="changeTask('previous')"
           class="btn btn-outline mr-2"
         >
           &lt; Previous
@@ -333,7 +362,7 @@ const taskIndicators = computed(() => {
         </button>
         <button
           v-if="!isLastTask"
-          @click="$emit('change-task', 'next')"
+          @click="changeTask('next')"
           class="btn btn-outline btn-secondary"
         >
           Next &gt;
