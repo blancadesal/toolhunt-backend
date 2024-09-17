@@ -38,6 +38,11 @@ export interface ContributionsResponse {
   contributions: ContributionData[];
 }
 
+export interface ContributionsParams {
+  days?: number;
+  limit?: number;
+}
+
 const API_BASE_URL = 'http://localhost:8082/api/v1'
 
 class ToolhuntApiClient {
@@ -131,10 +136,13 @@ class ToolhuntApiClient {
     return response.json()
   }
 
-  async fetchContributions(days?: number): Promise<ContributionsResponse> {
+  async fetchContributions(params?: ContributionsParams): Promise<ContributionsResponse> {
     let url = '/metrics/contributions';
-    if (days !== undefined) {
-      url += `?days=${days}`;
+    if (params) {
+      const queryParams = new URLSearchParams();
+      if (params.days !== undefined) queryParams.append('days', params.days.toString());
+      if (params.limit !== undefined) queryParams.append('limit', params.limit.toString());
+      url += `?${queryParams.toString()}`;
     }
     const response = await this.fetchWithAuth(url);
     return response.json();

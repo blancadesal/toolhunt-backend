@@ -1,13 +1,14 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { toolhuntApi } from '@/utils/ToolhuntApiClient';
 
 const topHuntersLastMonth = ref([]);
 const allTimeGreats = ref([]);
 
-const fetchContributions = async (days = undefined) => {
+const fetchContributions = async (days = undefined, limit = undefined) => {
   try {
-    const response = await toolhuntApi.fetchContributions(days);
+    const params = {};
+    if (days !== undefined) params.days = days;
+    if (limit !== undefined) params.limit = limit;
+    const response = await toolhuntApi.fetchContributions(params);
     return response.contributions;
   } catch (error) {
     console.error('Error fetching contributions:', error);
@@ -16,8 +17,8 @@ const fetchContributions = async (days = undefined) => {
 };
 
 onMounted(async () => {
-  topHuntersLastMonth.value = await fetchContributions(30);
-  allTimeGreats.value = await fetchContributions();
+  topHuntersLastMonth.value = await fetchContributions(30, 5);  // Top 10 for last 30 days
+  allTimeGreats.value = await fetchContributions(undefined, 10);  // Top 20 all-time
 });
 </script>
 

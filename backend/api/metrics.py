@@ -25,6 +25,9 @@ async def get_contribution_metrics(
     days: Optional[int] = Query(
         None, description="Number of days to consider for the leaderboard"
     ),
+    limit: Optional[int] = Query(
+        None, ge=1, description="Maximum number of results to return"
+    ),
 ):
     query = CompletedTask.all()
 
@@ -63,5 +66,8 @@ async def get_contribution_metrics(
         )
 
         previous_count = contribution["contribution_count"]
+
+        if limit and len(ranked_contributions) >= limit:
+            break
 
     return ContributionsResponse(contributions=ranked_contributions)
