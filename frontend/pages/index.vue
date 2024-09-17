@@ -2,11 +2,6 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { debounce } from 'lodash-es';
-import { ref, computed, watch, onMounted } from 'vue';
-import FieldFilter from '~/components/FieldFilter.vue';
-import TaskCard from '~/components/TaskCard.vue';
-import { useToolhuntApi } from '~/composables/useToolhuntApi';
-import { useAuth } from '~/composables/useAuth';
 
 const { isLoggedIn } = useAuth();
 const { tasks, fieldNames, annotationsSchema, fetchTasks, fetchFieldNames, fetchAnnotationsSchema } = useToolhuntApi();
@@ -249,16 +244,6 @@ const fieldInputOptions = computed(() => {
     label: toHumanReadable(option)
   }));
 });
-
-const toHumanReadable = (str) => {
-  if (str.includes('::')) {
-    return str.split('::').map(part => toHumanReadable(part)).join(' - ');
-  }
-  return str
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
 
 onMounted(async () => {
   isLoading.value = true;

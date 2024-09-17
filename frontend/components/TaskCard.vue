@@ -26,16 +26,6 @@ const { isLoggedIn } = useAuth();
 
 const inputRef = ref(null);
 
-const toHumanReadable = (str) => {
-  if (str.includes('::')) {
-    return str.split('::').map(part => toHumanReadable(part)).join(' - ');
-  }
-  return str
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
 const fieldDescription = computed(() => {
   if (props.annotationsSchema && props.currentTask && props.currentTask.field) {
     const fieldName = props.currentTask.field;
@@ -132,7 +122,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown);
 });
 
-// New computed property for taskIndicators
 const taskIndicators = computed(() => {
   return props.tasks.map(task => ({
     id: task.id,

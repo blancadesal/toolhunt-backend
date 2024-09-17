@@ -42,16 +42,6 @@ const formattedFieldNames = computed(() => {
   }));
 });
 
-const toHumanReadable = (str) => {
-  if (str.includes('::')) {
-    return str.split('::').map(part => toHumanReadable(part)).join(' - ');
-  }
-  return str
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
 // Watch for changes in selectedFields and emit the update
 watch(selectedFields, (newValue) => {
   emit('update:modelValue', newValue);
