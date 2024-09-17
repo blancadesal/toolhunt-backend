@@ -106,7 +106,7 @@ class ToolhuntApiClient {
     const params = new URLSearchParams()
     if (toolName) params.append('tool_name', toolName)
     if (fieldNames) params.append('field_names', fieldNames)
-    
+
     const response = await this.fetchWithAuth(`/tasks?${params.toString()}`)
     return response.json()
   }

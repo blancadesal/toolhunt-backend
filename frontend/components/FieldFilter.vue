@@ -1,6 +1,4 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
-
 const props = defineProps({
   fieldNames: {
     type: Array,
@@ -49,7 +47,7 @@ watch(selectedFields, (newValue) => {
 </script>
 
 <template>
-  <div class="field-filter w-full max-w-2xl mb-4">
+  <div class="field-filter w-full max-w-3xl mb-4">
     <div class="flex items-center">
       <button
         @click="toggleFieldFilter"
