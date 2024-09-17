@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { debounce } from 'lodash-es';
 
 const props = defineProps({
   tasks: Array,
@@ -10,18 +11,15 @@ const props = defineProps({
   isFirstTask: Boolean,
   fieldInputOptions: Array,
   isArrayType: Boolean,
-  currentUserInput: [String, Array],
   validationError: String,
-  hasAttemptedSubmit: Boolean,
   validateInput: Function,
 });
 
 const emit = defineEmits([
-  'update:currentUserInput',
-  'changeTask',
-  'submitContribution',
-  'loadNewBatch',
-  'update:validationError'
+  'change-task',
+  'submit-contribution',
+  'load-new-batch',
+  'update:validation-error'
 ]);
 
 const { isLoggedIn } = useAuth();
@@ -29,11 +27,31 @@ const { isLoggedIn } = useAuth();
 const inputRef = ref(null);
 const submittedTasks = ref(new Set());
 const isSubmitting = ref(false);
+const hasAttemptedSubmit = ref(false);
+const taskInputs = ref({});
 
 const currentTask = computed(() => props.tasks[props.currentTaskIndex] || null);
 
 const isCurrentTaskSubmitted = computed(() => {
   return currentTask.value && submittedTasks.value.has(currentTask.value.id);
+});
+
+const currentUserInput = computed({
+  get: () => {
+    if (currentTask.value) {
+      const input = taskInputs.value[currentTask.value.id];
+      if (props.isArrayType) {
+        return Array.isArray(input) ? input : [];
+      }
+      return input ?? '';
+    }
+    return '';
+  },
+  set: (value) => {
+    if (currentTask.value) {
+      taskInputs.value[currentTask.value.id] = value;
+    }
+  }
 });
 
 const fieldDescription = computed(() => {
@@ -77,28 +95,24 @@ const getInputType = (fieldName) => {
 
 const addArrayItem = () => {
   if (props.isArrayType) {
-    const newInput = Array.isArray(props.currentUserInput) ? [...props.currentUserInput, ''] : [''];
-    emit('update:currentUserInput', newInput);
+    const newInput = Array.isArray(currentUserInput.value) ? [...currentUserInput.value, ''] : [''];
+    currentUserInput.value = newInput;
   }
 };
 
 const removeArrayItem = (index) => {
-  if (props.isArrayType && Array.isArray(props.currentUserInput)) {
-    const newInput = [...props.currentUserInput];
+  if (props.isArrayType && Array.isArray(currentUserInput.value)) {
+    const newInput = [...currentUserInput.value];
     newInput.splice(index, 1);
-    emit('update:currentUserInput', newInput);
+    currentUserInput.value = newInput;
   }
-};
-
-const updateCurrentUserInput = (value) => {
-  emit('update:currentUserInput', value);
 };
 
 const handleKeydown = (event) => {
   if (event.key === 'ArrowLeft' && !props.isFirstTask) {
-    emit('changeTask', 'previous');
+    emit('change-task', 'previous');
   } else if (event.key === 'ArrowRight' && !props.isLastTask) {
-    emit('changeTask', 'next');
+    emit('change-task', 'next');
   }
 };
 
@@ -115,29 +129,28 @@ const submitContribution = () => {
   if (isSubmitting.value) return;
   
   isSubmitting.value = true;
+  hasAttemptedSubmit.value = true;
   console.log('submitContribution called');
   console.log('isLoggedIn:', isLoggedIn);
   console.log('currentTask:', currentTask.value);
-  console.log('currentUserInput:', props.currentUserInput);
+  console.log('currentUserInput:', currentUserInput.value);
 
-  if (!isLoggedIn || !currentTask.value) {
+  if (!isLoggedIn.value || !currentTask.value) {
     console.log('Returning early: not logged in or no current task');
     isSubmitting.value = false;
     return;
   }
 
-  if (!props.validateInput()) {
+  if (!props.validateInput(currentUserInput.value)) {
     console.log('Input validation failed');
-    emit('update:validationError', 'Invalid input');
+    emit('update:validation-error', 'Invalid input');
     isSubmitting.value = false;
     return;
   }
 
-  console.log('Submitted input:', props.currentUserInput);
-
-  emit('update:validationError', '');
+  emit('update:validation-error', '');
   submittedTasks.value.add(currentTask.value.id);
-  emit('submitContribution');
+  emit('submit-contribution', currentUserInput.value);
   
   // Reset isSubmitting after a short delay
   setTimeout(() => {
@@ -147,20 +160,25 @@ const submitContribution = () => {
 
 const resetSubmittedTasks = () => {
   submittedTasks.value.clear();
+  hasAttemptedSubmit.value = false;
+  taskInputs.value = {};
 };
 
 // Expose the resetSubmittedTasks method to the parent component
 defineExpose({ resetSubmittedTasks });
 
-watch(() => currentTask.value, () => {
-  nextTick(() => {
-    if (inputRef.value && !props.isArrayType && !currentTask.value.field.input_options) {
-      inputRef.value.focus();
-    }
-  });
+watch(() => props.currentTaskIndex, () => {
+  if (currentTask.value && !(currentTask.value.id in taskInputs.value)) {
+    taskInputs.value[currentTask.value.id] = props.isArrayType ? [] : '';
+  }
+  hasAttemptedSubmit.value = false;
+  emit('update:validation-error', '');
 });
 
 onMounted(() => {
+  if (currentTask.value) {
+    taskInputs.value[currentTask.value.id] = props.isArrayType ? [] : '';
+  }
   window.addEventListener('keydown', handleKeydown);
 });
 
@@ -224,8 +242,7 @@ const taskIndicators = computed(() => {
           <!-- Single select dropdown (for tool_type and other non-array types with options) -->
           <select
             v-if="!isArrayType && fieldInputOptions.length > 0"
-            :value="currentUserInput"
-            @input="updateCurrentUserInput($event.target.value)"
+            v-model="currentUserInput"
             @keydown="handleEnterKey"
             class="select select-bordered w-full"
             :disabled="isCurrentTaskSubmitted"
@@ -243,12 +260,7 @@ const taskIndicators = computed(() => {
                 :id="`checkbox-${option.value}`"
                 type="checkbox"
                 :value="option.value"
-                :checked="currentUserInput.includes(option.value)"
-                @change="updateCurrentUserInput(
-                  $event.target.checked
-                    ? [...currentUserInput, option.value]
-                    : currentUserInput.filter(v => v !== option.value)
-                )"
+                v-model="currentUserInput"
                 @keydown="handleEnterKey"
                 class="checkbox checkbox-primary border-2 mr-2"
                 :disabled="isCurrentTaskSubmitted"
@@ -261,10 +273,7 @@ const taskIndicators = computed(() => {
           <div v-else-if="isArrayType" class="space-y-2">
             <div v-for="(item, index) in currentUserInput" :key="index" class="flex items-center space-x-2">
               <input
-                :value="item"
-                @input="updateCurrentUserInput(
-                  currentUserInput.map((v, i) => i === index ? $event.target.value : v)
-                )"
+                v-model="currentUserInput[index]"
                 @keydown="handleEnterKey"
                 type="text"
                 :placeholder="`Enter item ${index + 1}`"
@@ -280,8 +289,7 @@ const taskIndicators = computed(() => {
           <input
             v-if="!isArrayType && fieldInputOptions.length === 0"
             ref="inputRef"
-            :value="currentUserInput"
-            @input="updateCurrentUserInput($event.target.value)"
+            v-model="currentUserInput"
             :type="getInputType(currentTask.field)"
             :placeholder="getPlaceholder(currentTask.field)"
             class="input input-bordered w-full"
@@ -299,7 +307,7 @@ const taskIndicators = computed(() => {
       <div class="card-actions justify-end mt-4">
         <button
           v-if="!isFirstTask"
-          @click="$emit('changeTask', 'previous')"
+          @click="$emit('change-task', 'previous')"
           class="btn btn-outline mr-2"
         >
           &lt; Previous
@@ -313,14 +321,14 @@ const taskIndicators = computed(() => {
         </button>
         <button
           v-if="!isLastTask"
-          @click="$emit('changeTask', 'next')"
+          @click="$emit('change-task', 'next')"
           class="btn btn-outline btn-secondary"
         >
           Next &gt;
         </button>
         <button
           v-else
-          @click="$emit('loadNewBatch')"
+          @click="$emit('load-new-batch')"
           class="btn btn-outline btn-secondary"
         >
           New Batch &gt;

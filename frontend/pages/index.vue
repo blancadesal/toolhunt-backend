@@ -9,9 +9,9 @@ const { tasks, fieldNames, annotationsSchema, fetchTasks, fetchFieldNames, fetch
 const currentTaskIndex = ref(0);
 const searchQuery = ref('');
 const selectedFields = ref([]);
-const taskInputs = ref({});
 const isLoading = ref(true);
 const isTaskChanging = ref(false);
+const taskCardRef = ref(null);
 
 const isArrayType = computed(() => {
   if (!annotationsSchema.value || !tasks.value[currentTaskIndex.value] || !tasks.value[currentTaskIndex.value].field) {
@@ -22,31 +22,12 @@ const isArrayType = computed(() => {
   return fieldProperties[fieldName]?.type === 'array';
 });
 
-const currentUserInput = computed({
-  get: () => {
-    if (tasks.value[currentTaskIndex.value]) {
-      const input = taskInputs.value[tasks.value[currentTaskIndex.value].id];
-      if (isArrayType.value) {
-        return Array.isArray(input) ? input : [];
-      }
-      return input ?? '';
-    }
-    return '';
-  },
-  set: (value) => {
-    if (tasks.value[currentTaskIndex.value]) {
-      taskInputs.value[tasks.value[currentTaskIndex.value].id] = value;
-    }
-  }
-});
-
 const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
 addFormats(ajv);
 
 const fieldSchema = ref(null);
 const validateField = ref(null);
 const validationError = ref('');
-const hasAttemptedSubmit = ref(false);
 
 const isLastTask = computed(() => currentTaskIndex.value === tasks.value.length - 1);
 const isFirstTask = computed(() => currentTaskIndex.value === 0);
@@ -92,42 +73,18 @@ watch([annotationsSchema, tasks, currentTaskIndex], ([annotationsSchemaValue, ta
   }
 });
 
-watch(fieldSchema, (newFieldSchema) => {
-  if (newFieldSchema) {
+const validateInput = (input) => {
+  if (fieldSchema.value) {
     try {
-      validateField.value = ajv.compile(newFieldSchema);
+      const validate = ajv.compile(fieldSchema.value);
+      if (isArrayType.value && Array.isArray(input) && input.length === 0) {
+        return false;
+      }
+      return validate(input);
     } catch (e) {
       console.error('Error compiling validator for field:', e);
-      validateField.value = null;
+      return true; // If we can't validate, assume it's valid
     }
-  } else {
-    validateField.value = null;
-  }
-});
-
-const debouncedValidate = debounce(() => {
-  if (validateField.value) {
-    const input = currentUserInput.value;
-    const isValid = validateField.value(input);
-    validationError.value = isValid ? '' : 'Invalid input';
-  } else {
-    validationError.value = '';
-  }
-}, 300);
-
-watchEffect(() => {
-  debouncedValidate();
-});
-
-const validateInput = () => {
-  if (validateField.value) {
-    const input = currentUserInput.value;
-
-    if (isArrayType.value && Array.isArray(input) && input.length === 0) {
-      return false;
-    }
-
-    return validateField.value(input);
   }
   return true;
 };
@@ -135,7 +92,6 @@ const validateInput = () => {
 const changeTask = (direction) => {
   isTaskChanging.value = true;
   validationError.value = '';
-  hasAttemptedSubmit.value = false;
   setTimeout(() => {
     if (direction === 'next') {
       nextTask();
@@ -178,11 +134,6 @@ const clearFilters = async () => {
   isLoading.value = false;
 };
 
-const resetState = () => {
-  validationError.value = '';
-  hasAttemptedSubmit.value = false;
-};
-
 const fieldInputOptions = computed(() => {
   if (!annotationsSchema.value || !tasks.value[currentTaskIndex.value] || !tasks.value[currentTaskIndex.value].field) {
     return [];
@@ -210,14 +161,12 @@ const fieldInputOptions = computed(() => {
   }));
 });
 
-const submitContribution = async () => {
+const submitContribution = async (input) => {
   if (!isLoggedIn.value || !tasks.value[currentTaskIndex.value]) {
     return;
   }
 
-  hasAttemptedSubmit.value = true;
-
-  if (!validateInput()) {
+  if (!validateInput(input)) {
     validationError.value = 'Invalid input';
     return;
   }
@@ -230,8 +179,6 @@ const loadNewBatch = async () => {
   isLoading.value = true;
   tasks.value = [];
   currentTaskIndex.value = 0;
-  taskInputs.value = {};
-  resetState();
   if (taskCardRef.value) {
     taskCardRef.value.resetSubmittedTasks();
   }
@@ -286,11 +233,8 @@ onMounted(async () => {
       :is-first-task="isFirstTask"
       :field-input-options="fieldInputOptions"
       :is-array-type="isArrayType"
-      :current-user-input="currentUserInput"
       :validation-error="validationError"
-      :has-attempted-submit="hasAttemptedSubmit"
       :validate-input="validateInput"
-      @update:current-user-input="currentUserInput = $event"
       @change-task="changeTask"
       @submit-contribution="submitContribution"
       @load-new-batch="loadNewBatch"
