@@ -10,7 +10,7 @@ from backend.models.pydantic import Token, User
 from backend.models.tortoise import User as DBUser
 from backend.security import ALGORITHM, decrypt_token, encrypt_token
 
-router = APIRouter(prefix="/user", tags=["user"])
+router = APIRouter(prefix="/user", tags=["users"])
 
 
 # helpers
