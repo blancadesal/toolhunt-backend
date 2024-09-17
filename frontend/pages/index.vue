@@ -9,7 +9,6 @@ const { tasks, fieldNames, annotationsSchema, fetchTasks, fetchFieldNames, fetch
 const currentTaskIndex = ref(0);
 const searchQuery = ref('');
 const selectedFields = ref([]);
-const submittedTasks = ref(new Set());
 const taskInputs = ref({});
 const isLoading = ref(true);
 const isTaskChanging = ref(false);
@@ -48,6 +47,9 @@ const fieldSchema = ref(null);
 const validateField = ref(null);
 const validationError = ref('');
 const hasAttemptedSubmit = ref(false);
+
+const isLastTask = computed(() => currentTaskIndex.value === tasks.value.length - 1);
+const isFirstTask = computed(() => currentTaskIndex.value === 0);
 
 watch(annotationsSchema, (newValue) => {
   if (newValue) {
@@ -130,23 +132,6 @@ const validateInput = () => {
   return true;
 };
 
-const submitContribution = async () => {
-  if (!isLoggedIn.value || !tasks.value[currentTaskIndex.value]) {
-    return;
-  }
-
-  hasAttemptedSubmit.value = true;
-
-  if (!validateInput()) {
-    validationError.value = 'Invalid input';
-    return;
-  }
-
-  validationError.value = '';
-  submittedTasks.value.add(tasks.value[currentTaskIndex.value].id);
-  nextTask();
-};
-
 const changeTask = (direction) => {
   isTaskChanging.value = true;
   validationError.value = '';
@@ -193,27 +178,9 @@ const clearFilters = async () => {
   isLoading.value = false;
 };
 
-const isCurrentTaskSubmitted = computed(() => {
-  return tasks.value[currentTaskIndex.value] && submittedTasks.value.has(tasks.value[currentTaskIndex.value].id);
-});
-
-const isLastTask = computed(() => currentTaskIndex.value === tasks.value.length - 1);
-const isFirstTask = computed(() => currentTaskIndex.value === 0);
-
 const resetState = () => {
   validationError.value = '';
   hasAttemptedSubmit.value = false;
-};
-
-const loadNewBatch = async () => {
-  isLoading.value = true;
-  tasks.value = [];
-  currentTaskIndex.value = 0;
-  submittedTasks.value.clear();
-  taskInputs.value = {};
-  resetState();
-  await fetchTasks(null, selectedFields.value.length > 0 ? selectedFields.value.join(',') : null);
-  isLoading.value = false;
 };
 
 const fieldInputOptions = computed(() => {
@@ -242,6 +209,35 @@ const fieldInputOptions = computed(() => {
     label: toHumanReadable(option)
   }));
 });
+
+const submitContribution = async () => {
+  if (!isLoggedIn.value || !tasks.value[currentTaskIndex.value]) {
+    return;
+  }
+
+  hasAttemptedSubmit.value = true;
+
+  if (!validateInput()) {
+    validationError.value = 'Invalid input';
+    return;
+  }
+
+  validationError.value = '';
+  nextTask();
+};
+
+const loadNewBatch = async () => {
+  isLoading.value = true;
+  tasks.value = [];
+  currentTaskIndex.value = 0;
+  taskInputs.value = {};
+  resetState();
+  if (taskCardRef.value) {
+    taskCardRef.value.resetSubmittedTasks();
+  }
+  await fetchTasks(null, selectedFields.value.length > 0 ? selectedFields.value.join(',') : null);
+  isLoading.value = false;
+};
 
 onMounted(async () => {
   isLoading.value = true;
@@ -281,11 +277,10 @@ onMounted(async () => {
 
     <TaskCard
       v-else-if="tasks.length > 0"
+      ref="taskCardRef"
       :tasks="tasks"
-      :submitted-tasks="submittedTasks"
       :current-task-index="currentTaskIndex"
       :annotations-schema="annotationsSchema"
-      :is-current-task-submitted="isCurrentTaskSubmitted"
       :is-task-changing="isTaskChanging"
       :is-last-task="isLastTask"
       :is-first-task="isFirstTask"

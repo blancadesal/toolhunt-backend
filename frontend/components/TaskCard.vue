@@ -1,10 +1,10 @@
 <script setup>
+import { ref, computed } from 'vue';
+
 const props = defineProps({
   tasks: Array,
-  submittedTasks: Set,
   currentTaskIndex: Number,
   annotationsSchema: Object,
-  isCurrentTaskSubmitted: Boolean,
   isTaskChanging: Boolean,
   isLastTask: Boolean,
   isFirstTask: Boolean,
@@ -21,14 +21,20 @@ const emit = defineEmits([
   'changeTask',
   'submitContribution',
   'loadNewBatch',
-  'update:validationError' // Add this line
+  'update:validationError'
 ]);
 
 const { isLoggedIn } = useAuth();
 
 const inputRef = ref(null);
+const submittedTasks = ref(new Set());
+const isSubmitting = ref(false);
 
 const currentTask = computed(() => props.tasks[props.currentTaskIndex] || null);
+
+const isCurrentTaskSubmitted = computed(() => {
+  return currentTask.value && submittedTasks.value.has(currentTask.value.id);
+});
 
 const fieldDescription = computed(() => {
   if (props.annotationsSchema && currentTask.value && currentTask.value.field) {
@@ -88,8 +94,6 @@ const updateCurrentUserInput = (value) => {
   emit('update:currentUserInput', value);
 };
 
-const isSubmitting = ref(false);
-
 const handleKeydown = (event) => {
   if (event.key === 'ArrowLeft' && !props.isFirstTask) {
     emit('changeTask', 'previous');
@@ -132,6 +136,7 @@ const submitContribution = () => {
   console.log('Submitted input:', props.currentUserInput);
 
   emit('update:validationError', '');
+  submittedTasks.value.add(currentTask.value.id);
   emit('submitContribution');
   
   // Reset isSubmitting after a short delay
@@ -139,6 +144,13 @@ const submitContribution = () => {
     isSubmitting.value = false;
   }, 300);
 };
+
+const resetSubmittedTasks = () => {
+  submittedTasks.value.clear();
+};
+
+// Expose the resetSubmittedTasks method to the parent component
+defineExpose({ resetSubmittedTasks });
 
 watch(() => currentTask.value, () => {
   nextTick(() => {
@@ -159,7 +171,7 @@ onBeforeUnmount(() => {
 const taskIndicators = computed(() => {
   return props.tasks.map(task => ({
     id: task.id,
-    completed: props.submittedTasks.has(task.id)
+    completed: submittedTasks.value.has(task.id)
   }));
 });
 </script>
