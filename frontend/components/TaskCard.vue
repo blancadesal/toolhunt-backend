@@ -242,8 +242,8 @@ const handleKeydown = (event) => {
   >
     <!-- Task Type Banner -->
     <div class="bg-secondary bg-opacity-90 text-secondary-content p-2 rounded-t-xl">
-      <p class="text-center text-lg font-semibold">
-        Task: {{ toHumanReadable(currentTask.field) }}
+      <p class="text-center text-lg">
+        {{ toHumanReadable(currentTask.field) }}
       </p>
     </div>
     <div class="card-body">
@@ -264,10 +264,10 @@ const handleKeydown = (event) => {
       </div>
 
       <!-- Tool Info Section -->
-      <div class="bg-secondary bg-opacity-10 p-4 mb-2 shadow-md rounded-lg">
+      <div class="bg-secondary bg-opacity-10 p-4 mb-4 shadow-md rounded-lg">
         <h2 class="card-title text-primary-content text-2xl mb-4">{{ currentTask.tool.title }}</h2>
         <p class="mb-4 text-primary-content">{{ currentTask.tool.description }}</p>
-        <div class="flex items-center mb-4">
+        <div class="flex items-center mb-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
@@ -278,7 +278,7 @@ const handleKeydown = (event) => {
       <div class="form-control">
         <div v-if="currentTask && currentTask.field">
           <label class="label">
-            <span class="label-text text-lg font-semibold mb-4">{{ fieldDescription }}</span>
+            <span class="label-text text-lg font-semibold">{{ fieldDescription }}</span>
           </label>
 
           <!-- Single select dropdown (for tool_type and other non-array types with options) -->
