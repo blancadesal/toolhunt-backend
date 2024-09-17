@@ -14,6 +14,11 @@ class ToolSchema(BaseModel):
         from_attributes = True
 
 
+class ToolNamesResponse(BaseModel):
+    all_titles: list[str]
+    titles: dict[str, str]
+
+
 class TaskSchema(BaseModel):
     id: int
     tool: ToolSchema
