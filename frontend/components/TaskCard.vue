@@ -7,8 +7,6 @@ const props = defineProps({
   currentTaskIndex: Number,
   annotationsSchema: Object,
   isTaskChanging: Boolean,
-  isLastTask: Boolean,
-  isFirstTask: Boolean,
   fieldInputOptions: Array,
   isArrayType: Boolean,
   validationError: String,
@@ -31,6 +29,8 @@ const hasAttemptedSubmit = ref(false);
 const taskInputs = ref({});
 
 const currentTask = computed(() => props.tasks[props.currentTaskIndex] || null);
+const isFirstTask = computed(() => props.currentTaskIndex === 0);
+const isLastTask = computed(() => props.currentTaskIndex === props.tasks.length - 1);
 
 const isCurrentTaskSubmitted = computed(() => {
   return currentTask.value && submittedTasks.value.has(currentTask.value.id);
@@ -109,9 +109,9 @@ const removeArrayItem = (index) => {
 };
 
 const handleKeydown = (event) => {
-  if (event.key === 'ArrowLeft' && !props.isFirstTask) {
+  if (event.key === 'ArrowLeft' && !isFirstTask.value) {
     emit('change-task', 'previous');
-  } else if (event.key === 'ArrowRight' && !props.isLastTask) {
+  } else if (event.key === 'ArrowRight' && !isLastTask.value) {
     emit('change-task', 'next');
   }
 };

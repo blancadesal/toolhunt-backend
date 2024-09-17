@@ -29,9 +29,6 @@ const fieldSchema = ref(null);
 const validateField = ref(null);
 const validationError = ref('');
 
-const isLastTask = computed(() => currentTaskIndex.value === tasks.value.length - 1);
-const isFirstTask = computed(() => currentTaskIndex.value === 0);
-
 watch(annotationsSchema, (newValue) => {
   if (newValue) {
     const schemas = newValue.schemas;
@@ -229,8 +226,6 @@ onMounted(async () => {
       :current-task-index="currentTaskIndex"
       :annotations-schema="annotationsSchema"
       :is-task-changing="isTaskChanging"
-      :is-last-task="isLastTask"
-      :is-first-task="isFirstTask"
       :field-input-options="fieldInputOptions"
       :is-array-type="isArrayType"
       :validation-error="validationError"
