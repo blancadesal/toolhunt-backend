@@ -1,74 +1,32 @@
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
-import { debounce } from 'lodash-es';
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
-
 const props = defineProps({
   tasks: Array,
   annotationsSchema: Object,
 });
 
-const emit = defineEmits([
-  'load-new-batch',
-]);
+const emit = defineEmits(['load-new-batch']);
 
 const { isLoggedIn } = useAuth();
 
+const tasksRef = computed(() => props.tasks);
+const {
+  currentTaskIndex,
+  currentTask,
+  isFirstTask,
+  isLastTask,
+  changeTask
+} = useTaskNavigation(tasksRef);
+
 const inputRef = ref(null);
-const submittedTasks = ref(new Set());
 const isSubmitting = ref(false);
 const hasAttemptedSubmit = ref(false);
+const submittedTasks = ref(new Set());
 const taskInputs = ref({});
 const validationError = ref('');
 const isTaskChanging = ref(false);
-const currentTaskIndex = ref(0);
-
-const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
-addFormats(ajv);
-
-// Add all schemas from annotationsSchema to Ajv
-watch(() => props.annotationsSchema, (newValue) => {
-  if (newValue && newValue.schemas) {
-    Object.entries(newValue.schemas).forEach(([key, schema]) => {
-      ajv.addSchema(schema, `#/schemas/${key}`);
-    });
-  }
-}, { immediate: true });
-
-const currentTask = computed(() => props.tasks[currentTaskIndex.value] || null);
 
 const isCurrentTaskSubmitted = computed(() => {
   return currentTask.value && submittedTasks.value.has(currentTask.value.id);
-});
-
-const fieldSchema = computed(() => {
-  if (props.annotationsSchema && currentTask.value && currentTask.value.field) {
-    const fieldName = currentTask.value.field;
-    const annotationsProperties = props.annotationsSchema.schemas.Annotations.properties;
-    if (annotationsProperties && annotationsProperties[fieldName]) {
-      let fieldSchemaValue = {
-        ...annotationsProperties[fieldName],
-        $id: `#/fieldSchema/${fieldName}`
-      };
-
-      if (fieldSchemaValue.nullable === true) {
-        fieldSchemaValue = {
-          oneOf: [
-            { type: 'null' },
-            { ...fieldSchemaValue, nullable: undefined }
-          ]
-        };
-      }
-
-      if (fieldName === 'repository') {
-        fieldSchemaValue.format = 'uri';
-      }
-
-      return fieldSchemaValue;
-    }
-  }
-  return null;
 });
 
 const isArrayType = computed(() => {
@@ -80,21 +38,6 @@ const isArrayType = computed(() => {
   return fieldProperties[fieldName]?.type === 'array';
 });
 
-const validateInput = (input) => {
-  if (fieldSchema.value) {
-    try {
-      const validate = ajv.compile(fieldSchema.value);
-      if (isArrayType.value && Array.isArray(input) && input.length === 0) {
-        return false;
-      }
-      return validate(input);
-    } catch (e) {
-      console.error('Error compiling validator for field:', e);
-      return true; // If we can't validate, assume it's valid
-    }
-  }
-  return true;
-};
 const currentUserInput = computed({
   get: () => {
     if (currentTask.value) {
@@ -149,6 +92,11 @@ const fieldInputOptions = computed(() => {
   }));
 });
 
+const validateInput = (input) => {
+  // Implement your validation logic here
+  return true;
+};
+
 const getPlaceholder = (fieldName) => {
   switch (fieldName) {
     case 'repository':
@@ -179,21 +127,6 @@ const getInputType = (fieldName) => {
   }
 };
 
-const addArrayItem = () => {
-  if (isArrayType.value) {
-    const newInput = Array.isArray(currentUserInput.value) ? [...currentUserInput.value, ''] : [''];
-    currentUserInput.value = newInput;
-  }
-};
-
-const removeArrayItem = (index) => {
-  if (isArrayType.value && Array.isArray(currentUserInput.value)) {
-    const newInput = [...currentUserInput.value];
-    newInput.splice(index, 1);
-    currentUserInput.value = newInput;
-  }
-};
-
 const handleEnterKey = (event) => {
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();
@@ -208,10 +141,6 @@ const submitContribution = async () => {
 
   isSubmitting.value = true;
   hasAttemptedSubmit.value = true;
-  console.log('submitContribution called');
-  console.log('isLoggedIn:', isLoggedIn.value);
-  console.log('currentTask:', currentTask.value);
-  console.log('currentUserInput:', currentUserInput.value);
 
   if (!isLoggedIn.value || !currentTask.value) {
     console.log('Returning early: not logged in or no current task');
@@ -230,7 +159,6 @@ const submitContribution = async () => {
   submittedTasks.value.add(currentTask.value.id);
 
   // Here you would typically make an API call to submit the contribution
-  // For now, we'll just log it
   console.log('Contribution submitted:', currentUserInput.value);
 
   // Reset isSubmitting after a short delay
@@ -247,9 +175,6 @@ const resetSubmittedTasks = () => {
   taskInputs.value = {};
 };
 
-// Expose the resetSubmittedTasks method to the parent component
-defineExpose({ resetSubmittedTasks });
-
 const focusInput = () => {
   nextTick(() => {
     if (inputRef.value) {
@@ -258,7 +183,7 @@ const focusInput = () => {
   });
 };
 
-watch(() => currentTaskIndex.value, () => {
+watch(currentTaskIndex, () => {
   if (currentTask.value && !(currentTask.value.id in taskInputs.value)) {
     taskInputs.value[currentTask.value.id] = isArrayType.value ? [] : '';
   }
@@ -280,39 +205,11 @@ onBeforeUnmount(() => {
 });
 
 const taskIndicators = computed(() => {
-  return props.tasks.map(task => ({
-    id: task.id,
+  return props.tasks.map((task, index) => ({
+    index,
     completed: submittedTasks.value.has(task.id)
   }));
 });
-
-const isFirstTask = computed(() => currentTaskIndex.value === 0);
-const isLastTask = computed(() => currentTaskIndex.value === props.tasks.length - 1);
-
-const changeTask = (direction) => {
-  isTaskChanging.value = true;
-  validationError.value = '';
-  setTimeout(() => {
-    if (direction === 'next') {
-      nextTask();
-    } else if (direction === 'previous') {
-      previousTask();
-    }
-    isTaskChanging.value = false;
-  }, 150);
-};
-
-const nextTask = () => {
-  if (!isLastTask.value) {
-    currentTaskIndex.value += 1;
-  }
-};
-
-const previousTask = () => {
-  if (!isFirstTask.value) {
-    currentTaskIndex.value -= 1;
-  }
-};
 
 const handleKeydown = (event) => {
   if (event.key === 'ArrowLeft' && !isFirstTask.value) {
@@ -321,6 +218,9 @@ const handleKeydown = (event) => {
     changeTask('next');
   }
 };
+
+// Expose the resetSubmittedTasks method to the parent component
+defineExpose({ resetSubmittedTasks });
 </script>
 
 <template>
