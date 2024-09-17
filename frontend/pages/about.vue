@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-base-200 py-12">
+  <div class="flex flex-col min-h-screen py-12">
     <div class="container bg-base-100 shadow-xl p-8 rounded-xl mx-auto max-w-3xl">
       <h1 class="text-4xl font-bold mb-8 text-center text-secondary">About Toolhunt</h1>
       <div class="prose prose-lg max-w-none">

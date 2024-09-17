@@ -1,8 +1,8 @@
 <!-- profile.vue -->
 <template>
-  <div class="min-h-screen bg-base-200 py-12">
+  <div class="flex flex-col min-h-screen py-12">
     <div class="container mx-auto px-4 max-w-md">
-      <h1 class="text-3xl font-bold mb-8 text-center text-secondary">Profile</h1>
+      <h1 class="text-4xl font-bold mb-8 text-center text-secondary">Profile</h1>
       <div v-if="authState.loading" class="flex justify-center">
         <span class="loading loading-spinner loading-lg"></span>
       </div>
