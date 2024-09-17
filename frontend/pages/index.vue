@@ -14,17 +14,21 @@ const { tasks, fieldNames, annotationsSchema, fetchTasks, fetchFieldNames, fetch
 const currentTaskIndex = ref(0);
 const searchQuery = ref('');
 const selectedFields = ref([]);
-const showFieldFilter = ref(false);
 const submittedTasks = ref(new Set());
 const taskInputs = ref({});
-const appliedFilters = ref(0);
-
-const fieldSchema = ref(null);
-const validateField = ref(null);
-const validationError = ref('');
-const hasAttemptedSubmit = ref(false);
+const isLoading = ref(true);
+const isTaskChanging = ref(false);
 
 const currentTask = computed(() => tasks.value[currentTaskIndex.value] || null);
+
+const isArrayType = computed(() => {
+  if (!annotationsSchema.value || !currentTask.value || !currentTask.value.field) {
+    return false;
+  }
+  const fieldName = currentTask.value.field;
+  const fieldProperties = annotationsSchema.value.schemas.Annotations.properties;
+  return fieldProperties[fieldName]?.type === 'array';
+});
 
 const currentUserInput = computed({
   get: () => {
@@ -46,6 +50,11 @@ const currentUserInput = computed({
 
 const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
 addFormats(ajv);
+
+const fieldSchema = ref(null);
+const validateField = ref(null);
+const validationError = ref('');
+const hasAttemptedSubmit = ref(false);
 
 watch(annotationsSchema, (newValue) => {
   if (newValue) {
@@ -175,29 +184,20 @@ const searchTools = () => {
   // Implement search functionality
 };
 
-const toggleFieldFilter = () => {
-  showFieldFilter.value = !showFieldFilter.value;
+const applyFieldFilter = async (filters) => {
+  selectedFields.value = filters;
+  isLoading.value = true;
+  await fetchTasks(null, filters.length > 0 ? filters.join(',') : null);
+  currentTaskIndex.value = 0; // Reset to the first task after applying filters
+  isLoading.value = false;
 };
 
-const applyFieldFilter = () => {
-  fetchTasks(null, selectedFields.value.length > 0 ? selectedFields.value.join(',') : null);
-  appliedFilters.value = selectedFields.value.length;
-};
-
-const clearFilters = () => {
+const clearFilters = async () => {
   selectedFields.value = [];
-  appliedFilters.value = 0;
-  fetchTasks();
-};
-
-const toHumanReadable = (str) => {
-  if (str.includes('::')) {
-    return str.split('::').map(part => toHumanReadable(part)).join(' - ');
-  }
-  return str
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  isLoading.value = true;
+  await fetchTasks();
+  currentTaskIndex.value = 0; // Reset to the first task after clearing filters
+  isLoading.value = false;
 };
 
 const taskIndicators = computed(() => {
@@ -220,15 +220,15 @@ const resetState = () => {
 };
 
 const loadNewBatch = async () => {
+  isLoading.value = true;
   tasks.value = [];
   currentTaskIndex.value = 0;
   submittedTasks.value.clear();
   taskInputs.value = {};
   resetState();
   await fetchTasks(null, selectedFields.value.length > 0 ? selectedFields.value.join(',') : null);
+  isLoading.value = false;
 };
-
-const isTaskChanging = ref(false);
 
 const fieldInputOptions = computed(() => {
   if (!annotationsSchema.value || !currentTask.value || !currentTask.value.field) {
@@ -257,26 +257,22 @@ const fieldInputOptions = computed(() => {
   }));
 });
 
-const isArrayType = computed(() => {
-  if (!annotationsSchema.value || !currentTask.value || !currentTask.value.field) {
-    return false;
+const toHumanReadable = (str) => {
+  if (str.includes('::')) {
+    return str.split('::').map(part => toHumanReadable(part)).join(' - ');
   }
-  const fieldName = currentTask.value.field;
-  const fieldProperties = annotationsSchema.value.schemas.Annotations.properties;
-  return fieldProperties[fieldName]?.type === 'array';
-});
-
-const formattedFieldNames = computed(() => {
-  return fieldNames.value.map(field => ({
-    value: field,
-    label: toHumanReadable(field)
-  }));
-});
+  return str
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
 
 onMounted(async () => {
+  isLoading.value = true;
   await fetchTasks();
   await fetchFieldNames();
   await fetchAnnotationsSchema();
+  isLoading.value = false;
 });
 </script>
 
@@ -296,14 +292,22 @@ onMounted(async () => {
     </div>
 
     <FieldFilter
-      :field-names="formattedFieldNames"
+      :field-names="fieldNames"
       v-model="selectedFields"
-      :applied-filters="appliedFilters"
       @apply-filter="applyFieldFilter"
       @clear-filters="clearFilters"
     />
 
+    <div v-if="isLoading" class="text-center mt-8">
+      <p class="text-xl">Loading tasks...</p>
+    </div>
+
+    <div v-else-if="tasks.length === 0" class="text-center mt-8">
+      <p class="text-xl">No tasks available. Try clearing filters or refreshing the page.</p>
+    </div>
+
     <TaskCard
+      v-else-if="currentTask"
       :current-task="currentTask"
       :task-indicators="taskIndicators"
       :current-task-index="currentTaskIndex"

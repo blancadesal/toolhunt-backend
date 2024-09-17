@@ -1,4 +1,6 @@
 <script setup>
+import { ref, computed, watch } from 'vue';
+
 const props = defineProps({
   fieldNames: {
     type: Array,
@@ -6,10 +8,6 @@ const props = defineProps({
   },
   modelValue: {
     type: Array,
-    required: true
-  },
-  appliedFilters: {
-    type: Number,
     required: true
   }
 });
@@ -28,13 +26,36 @@ const toggleFieldFilter = () => {
 };
 
 const applyFieldFilter = () => {
-  emit('applyFilter');
+  emit('applyFilter', selectedFields.value);
   showFieldFilter.value = false;
 };
 
 const clearFilters = () => {
+  selectedFields.value = [];
   emit('clearFilters');
 };
+
+const formattedFieldNames = computed(() => {
+  return props.fieldNames.map(field => ({
+    value: field,
+    label: toHumanReadable(field)
+  }));
+});
+
+const toHumanReadable = (str) => {
+  if (str.includes('::')) {
+    return str.split('::').map(part => toHumanReadable(part)).join(' - ');
+  }
+  return str
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+// Watch for changes in selectedFields and emit the update
+watch(selectedFields, (newValue) => {
+  emit('update:modelValue', newValue);
+});
 </script>
 
 <template>
@@ -53,11 +74,11 @@ const clearFilters = () => {
         {{ showFieldFilter ? 'Hide Filter' : 'Task Filter' }}
       </button>
       <button
-        v-if="appliedFilters > 0"
+        v-if="selectedFields.length > 0"
         @click="clearFilters"
         class="btn btn-sm btn-outline btn-primary"
       >
-        Clear Filters ({{ appliedFilters }})
+        Clear Filters ({{ selectedFields.length }})
       </button>
     </div>
 
@@ -65,7 +86,7 @@ const clearFilters = () => {
       <div class="card-body">
         <h2 class="card-title text-xl mb-4">Filter by Task Types</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <div v-for="field in fieldNames" :key="field.value" class="flex items-center">
+          <div v-for="field in formattedFieldNames" :key="field.value" class="flex items-center">
             <input
               type="checkbox"
               :id="field.value"
