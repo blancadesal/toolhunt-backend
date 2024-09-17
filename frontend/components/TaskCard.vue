@@ -248,16 +248,19 @@ const handleKeydown = (event) => {
     </div>
     <div class="card-body">
       <!-- Task Progress Indicators -->
-      <div class="flex justify-center mb-4 space-x-2">
+      <div class="flex justify-center mb-4 space-x-3">
         <div
           v-for="(indicator, index) in taskIndicators"
           :key="indicator.id"
-          class="w-3 h-3 rounded-full border-2 border-primary transition-all duration-300"
+          class="w-6 h-6 rounded-full border-2 border-primary flex items-center justify-center text-sm font-medium transition-all duration-100"
           :class="{
-            'bg-primary': indicator.completed,
-            'ring-2 ring-primary ring-opacity-50': index === currentTaskIndex
+            'bg-primary text-white': indicator.completed,
+            'ring-2 ring-primary ring-opacity-50': index === currentTaskIndex,
+            'text-primary': !indicator.completed
           }"
-        ></div>
+        >
+          {{ index + 1 }}
+        </div>
       </div>
 
       <!-- Tool Info Section -->
