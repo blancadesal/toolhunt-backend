@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { debounce } from 'lodash-es';
 
 const props = defineProps({
@@ -167,12 +167,21 @@ const resetSubmittedTasks = () => {
 // Expose the resetSubmittedTasks method to the parent component
 defineExpose({ resetSubmittedTasks });
 
+const focusInput = () => {
+  nextTick(() => {
+    if (inputRef.value) {
+      inputRef.value.focus();
+    }
+  });
+};
+
 watch(() => props.currentTaskIndex, () => {
   if (currentTask.value && !(currentTask.value.id in taskInputs.value)) {
     taskInputs.value[currentTask.value.id] = props.isArrayType ? [] : '';
   }
   hasAttemptedSubmit.value = false;
   emit('update:validation-error', '');
+  focusInput();
 });
 
 onMounted(() => {
@@ -180,6 +189,7 @@ onMounted(() => {
     taskInputs.value[currentTask.value.id] = props.isArrayType ? [] : '';
   }
   window.addEventListener('keydown', handleKeydown);
+  focusInput();
 });
 
 onBeforeUnmount(() => {
@@ -242,6 +252,7 @@ const taskIndicators = computed(() => {
           <!-- Single select dropdown (for tool_type and other non-array types with options) -->
           <select
             v-if="!isArrayType && fieldInputOptions.length > 0"
+            ref="inputRef"
             v-model="currentUserInput"
             @keydown="handleEnterKey"
             class="select select-bordered w-full"
@@ -274,6 +285,7 @@ const taskIndicators = computed(() => {
             <div v-for="(item, index) in currentUserInput" :key="index" class="flex items-center space-x-2">
               <input
                 v-model="currentUserInput[index]"
+                :ref="index === 0 ? inputRef : undefined"
                 @keydown="handleEnterKey"
                 type="text"
                 :placeholder="`Enter item ${index + 1}`"
