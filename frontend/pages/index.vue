@@ -266,10 +266,17 @@ const isArrayType = computed(() => {
   return fieldProperties[fieldName]?.type === 'array';
 });
 
-onMounted(() => {
-  fetchTasks();
-  fetchFieldNames();
-  fetchAnnotationsSchema();
+const formattedFieldNames = computed(() => {
+  return fieldNames.value.map(field => ({
+    value: field,
+    label: toHumanReadable(field)
+  }));
+});
+
+onMounted(async () => {
+  await fetchTasks();
+  await fetchFieldNames();
+  await fetchAnnotationsSchema();
 });
 </script>
 
@@ -289,7 +296,7 @@ onMounted(() => {
     </div>
 
     <FieldFilter
-      :field-names="fieldNames"
+      :field-names="formattedFieldNames"
       v-model="selectedFields"
       :applied-filters="appliedFilters"
       @apply-filter="applyFieldFilter"

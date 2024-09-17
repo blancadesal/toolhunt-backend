@@ -1,9 +1,8 @@
-export interface User {
-  id: string
-  username: string
-  email: string
-  // Add any other user properties here
-}
+// composables/useAuth.ts
+
+import { computed } from 'vue'
+import { useState, useRoute } from '#app'
+import { toolhuntApi, type User } from '~/utils/ToolhuntApiClient'
 
 export interface AuthState {
   user: User | null
@@ -21,7 +20,7 @@ export const useAuth = () => {
   const fetchUserData = async () => {
     authState.value.loading = true
     try {
-      authState.value.user = await apiFetchUserData()
+      authState.value.user = await toolhuntApi.fetchUserData()
     } catch (error) {
       console.error('Error fetching user data:', error)
       authState.value.user = null
@@ -33,12 +32,12 @@ export const useAuth = () => {
   const login = () => {
     const currentRoute = useRoute()
     const currentPath = currentRoute.fullPath
-    apiLogin(currentPath)
+    toolhuntApi.login(currentPath)
   }
 
   const handleCallback = async (code: string, state: string) => {
     try {
-      const { user, redirectTo } = await apiHandleCallback(code, state)
+      const { user, redirectTo } = await toolhuntApi.handleCallback(code, state)
       authState.value.user = user
       return redirectTo
     } catch (error) {
@@ -49,7 +48,7 @@ export const useAuth = () => {
 
   const logout = async () => {
     try {
-      await apiLogout()
+      await toolhuntApi.logout()
       authState.value.user = null
     } catch (error) {
       console.error('Error during logout:', error)

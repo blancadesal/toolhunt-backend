@@ -2,27 +2,8 @@
 
 import { ref } from 'vue'
 import type { Ref } from 'vue'
-
-export interface Task {
-  id: string;
-  field: string;
-  tool: {
-    title: string;
-    description: string;
-    url: string;
-  };
-  // Add other task properties as needed
-}
-
-export interface AnnotationsSchema {
-  schemas: {
-    Annotations: {
-      properties: Record<string, any>;
-    };
-    [key: string]: any;
-  };
-  // Add other schema properties as needed
-}
+import { toolhuntApi } from '~/utils/ToolhuntApiClient'
+import type { Task, AnnotationsSchema } from '~/utils/ToolhuntApiClient'
 
 export function useToolhuntApi() {
   const tasks: Ref<Task[]> = ref([])
@@ -31,18 +12,7 @@ export function useToolhuntApi() {
 
   const fetchTasks = async (toolName: string | null = null, fieldNames: string | null = null): Promise<void> => {
     try {
-      let url = 'http://localhost:8082/api/v1/tasks'
-      const params = new URLSearchParams()
-      if (toolName) params.append('tool_name', toolName)
-      if (fieldNames) params.append('field_names', fieldNames)
-      if (params.toString()) url += `?${params.toString()}`
-
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error('Failed to fetch tasks')
-      }
-      const newTasks: Task[] = await response.json()
-      tasks.value = newTasks
+      tasks.value = await toolhuntApi.fetchTasks(toolName, fieldNames)
     } catch (error) {
       console.error('Error fetching tasks:', error)
       tasks.value = []
@@ -51,12 +21,7 @@ export function useToolhuntApi() {
 
   const fetchFieldNames = async (): Promise<void> => {
     try {
-      const response = await fetch('http://localhost:8082/api/v1/fields')
-      if (!response.ok) {
-        throw new Error('Failed to fetch field names')
-      }
-      const fields: string[] = await response.json()
-      fieldNames.value = fields
+      fieldNames.value = await toolhuntApi.fetchFieldNames()
     } catch (error) {
       console.error('Error fetching field names:', error)
       fieldNames.value = []
@@ -65,12 +30,7 @@ export function useToolhuntApi() {
 
   const fetchAnnotationsSchema = async (): Promise<void> => {
     try {
-      const response = await fetch('http://localhost:8082/api/v1/schema')
-      if (!response.ok) {
-        throw new Error('Failed to fetch annotations schema')
-      }
-      const schemaData: AnnotationsSchema = await response.json()
-      annotationsSchema.value = schemaData
+      annotationsSchema.value = await toolhuntApi.fetchAnnotationsSchema()
     } catch (error) {
       console.error('Error fetching annotations schema:', error)
       annotationsSchema.value = null
