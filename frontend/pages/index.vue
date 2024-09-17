@@ -1,9 +1,7 @@
 <script setup>
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import { debounce } from 'lodash-es';
 
-const { isLoggedIn } = useAuth();
 const { tasks, fieldNames, annotationsSchema, fetchTasks, fetchFieldNames, fetchAnnotationsSchema } = useToolhuntApi();
 
 const currentTaskIndex = ref(0);
@@ -25,8 +23,6 @@ const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false }
 addFormats(ajv);
 
 const fieldSchema = ref(null);
-const validateField = ref(null);
-const validationError = ref('');
 
 watch(annotationsSchema, (newValue) => {
   if (newValue) {
@@ -156,12 +152,12 @@ onMounted(async () => {
   <div class="flex flex-col min-h-screen items-center p-4">
     <h1 class="text-4xl font-bold mt-4 mb-4">Welcome to Toolhunt!</h1>
     <div class="w-full max-w-3xl mb-4 mt-4">
-        <div class="relative">
-          <input v-model="searchQuery" type="text" placeholder="Search for a tool" class="input input-bordered w-full pr-10" />
-          <button @click="searchTools" class="absolute right-2 top-1/2 transform -translate-y-1/2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          </button>
-        </div>
+      <div class="relative">
+        <input v-model="searchQuery" type="text" placeholder="Search for a tool" class="input input-bordered w-full pr-10" />
+        <button @click="searchTools" class="absolute right-2 top-1/2 transform -translate-y-1/2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        </button>
+      </div>
     </div>
 
     <FieldFilter
