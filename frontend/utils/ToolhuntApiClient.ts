@@ -28,6 +28,16 @@ export interface AnnotationsSchema {
   // Add other schema properties as needed
 }
 
+export interface ContributionData {
+  rank: number;
+  username: string;
+  contributions: number;
+}
+
+export interface ContributionsResponse {
+  contributions: ContributionData[];
+}
+
 const API_BASE_URL = 'http://localhost:8082/api/v1'
 
 class ToolhuntApiClient {
@@ -119,6 +129,15 @@ class ToolhuntApiClient {
   async fetchAnnotationsSchema(): Promise<AnnotationsSchema> {
     const response = await this.fetchWithAuth('/schema')
     return response.json()
+  }
+
+  async fetchContributions(days?: number): Promise<ContributionsResponse> {
+    let url = '/metrics/contributions';
+    if (days !== undefined) {
+      url += `?days=${days}`;
+    }
+    const response = await this.fetchWithAuth(url);
+    return response.json();
   }
 
   // Add other API methods as needed
