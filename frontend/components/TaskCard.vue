@@ -8,15 +8,12 @@ const props = defineProps({
   annotationsSchema: Object,
   fieldInputOptions: Array,
   isArrayType: Boolean,
-  validationError: String,
   validateInput: Function,
 });
 
 const emit = defineEmits([
   'update:current-task-index',
-  'submit-contribution',
   'load-new-batch',
-  'update:validation-error'
 ]);
 
 const { isLoggedIn } = useAuth();
@@ -26,6 +23,8 @@ const submittedTasks = ref(new Set());
 const isSubmitting = ref(false);
 const hasAttemptedSubmit = ref(false);
 const taskInputs = ref({});
+const validationError = ref('');
+const isTaskChanging = ref(false);
 
 const currentTask = computed(() => props.tasks[props.currentTaskIndex] || null);
 
@@ -114,13 +113,13 @@ const handleEnterKey = (event) => {
   }
 };
 
-const submitContribution = () => {
+const submitContribution = async () => {
   if (isSubmitting.value) return;
   
   isSubmitting.value = true;
   hasAttemptedSubmit.value = true;
   console.log('submitContribution called');
-  console.log('isLoggedIn:', isLoggedIn);
+  console.log('isLoggedIn:', isLoggedIn.value);
   console.log('currentTask:', currentTask.value);
   console.log('currentUserInput:', currentUserInput.value);
 
@@ -132,15 +131,18 @@ const submitContribution = () => {
 
   if (!props.validateInput(currentUserInput.value)) {
     console.log('Input validation failed');
-    emit('update:validation-error', 'Invalid input');
+    validationError.value = 'Invalid input';
     isSubmitting.value = false;
     return;
   }
 
-  emit('update:validation-error', '');
+  validationError.value = '';
   submittedTasks.value.add(currentTask.value.id);
-  emit('submit-contribution', currentUserInput.value);
-  
+
+  // Here you would typically make an API call to submit the contribution
+  // For now, we'll just log it
+  console.log('Contribution submitted:', currentUserInput.value);
+
   // Reset isSubmitting after a short delay
   setTimeout(() => {
     isSubmitting.value = false;
@@ -171,7 +173,7 @@ watch(() => props.currentTaskIndex, () => {
     taskInputs.value[currentTask.value.id] = props.isArrayType ? [] : '';
   }
   hasAttemptedSubmit.value = false;
-  emit('update:validation-error', '');
+  validationError.value = '';
   focusInput();
 });
 
@@ -194,11 +196,12 @@ const taskIndicators = computed(() => {
   }));
 });
 
-const isTaskChanging = ref(false);
+const isFirstTask = computed(() => props.currentTaskIndex === 0);
+const isLastTask = computed(() => props.currentTaskIndex === props.tasks.length - 1);
 
 const changeTask = (direction) => {
   isTaskChanging.value = true;
-  emit('update:validation-error', '');
+  validationError.value = '';
   setTimeout(() => {
     if (direction === 'next') {
       nextTask();
@@ -220,9 +223,6 @@ const previousTask = () => {
     emit('update:current-task-index', props.currentTaskIndex - 1);
   }
 };
-
-const isFirstTask = computed(() => props.currentTaskIndex === 0);
-const isLastTask = computed(() => props.currentTaskIndex === props.tasks.length - 1);
 
 const handleKeydown = (event) => {
   if (event.key === 'ArrowLeft' && !isFirstTask.value) {

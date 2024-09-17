@@ -132,23 +132,6 @@ const fieldInputOptions = computed(() => {
   }));
 });
 
-const submitContribution = async (input) => {
-  if (!isLoggedIn.value || !tasks.value[currentTaskIndex.value]) {
-    return;
-  }
-
-  if (!validateInput(input)) {
-    validationError.value = 'Invalid input';
-    return;
-  }
-
-  validationError.value = '';
-  // The actual submission logic would go here
-  console.log('Contribution submitted:', input);
-  
-  // We don't need to call nextTask() here anymore as it's handled in the TaskCard component
-};
-
 const loadNewBatch = async () => {
   isLoading.value = true;
   tasks.value = [];
@@ -204,12 +187,9 @@ onMounted(async () => {
       :annotations-schema="annotationsSchema"
       :field-input-options="fieldInputOptions"
       :is-array-type="isArrayType"
-      :validation-error="validationError"
       :validate-input="validateInput"
       @update:current-task-index="currentTaskIndex = $event"
-      @submit-contribution="submitContribution"
       @load-new-batch="loadNewBatch"
-      @update:validation-error="validationError = $event"
     />
   </div>
 </template>
