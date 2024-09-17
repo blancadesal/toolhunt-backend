@@ -1,3 +1,23 @@
+<script setup>
+
+const menuItems = [
+  { to: '/leaderboard', label: 'Leaderboard' },
+  { to: '/profile', label: 'Profile' },
+	{ to: '/about', label: 'About' },
+	{ to: '/search', label: 'Search' },
+]
+
+const handleAuthAction = async () => {
+  if (isLoggedIn.value) {
+    await logout()
+    router.go(0)
+  } else {
+    const loginUrl = await login()
+    if (loginUrl) window.location.href = loginUrl
+  }
+}
+</script>
+
 <template>
   <div class="navbar bg-base-100 shadow-lg text-lg py-2 sm:py-3 md:py-4 px-2 sm:px-4 md:px-6">
     <div class="flex-1">
@@ -34,24 +54,3 @@
     </div>
   </div>
 </template>
-
-<script setup>
-const { isLoggedIn, logout, login } = useAuth()
-const router = useRouter()
-
-const menuItems = [
-  { to: '/leaderboard', label: 'Leaderboard' },
-  { to: '/profile', label: 'Profile' },
-  { to: '/about', label: 'About' },
-]
-
-const handleAuthAction = async () => {
-  if (isLoggedIn.value) {
-    await logout()
-    router.go(0)
-  } else {
-    const loginUrl = await login()
-    if (loginUrl) window.location.href = loginUrl
-  }
-}
-</script>
