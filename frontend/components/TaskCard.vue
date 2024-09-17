@@ -1,18 +1,15 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { debounce } from 'lodash-es';
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 
 const props = defineProps({
   tasks: Array,
-  currentTaskIndex: Number,
   annotationsSchema: Object,
-  fieldInputOptions: Array,
-  isArrayType: Boolean,
-  validateInput: Function,
 });
 
 const emit = defineEmits([
-  'update:current-task-index',
   'load-new-batch',
 ]);
 
@@ -25,18 +22,84 @@ const hasAttemptedSubmit = ref(false);
 const taskInputs = ref({});
 const validationError = ref('');
 const isTaskChanging = ref(false);
+const currentTaskIndex = ref(0);
 
-const currentTask = computed(() => props.tasks[props.currentTaskIndex] || null);
+const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
+addFormats(ajv);
+
+// Add all schemas from annotationsSchema to Ajv
+watch(() => props.annotationsSchema, (newValue) => {
+  if (newValue && newValue.schemas) {
+    Object.entries(newValue.schemas).forEach(([key, schema]) => {
+      ajv.addSchema(schema, `#/schemas/${key}`);
+    });
+  }
+}, { immediate: true });
+
+const currentTask = computed(() => props.tasks[currentTaskIndex.value] || null);
 
 const isCurrentTaskSubmitted = computed(() => {
   return currentTask.value && submittedTasks.value.has(currentTask.value.id);
 });
 
+const fieldSchema = computed(() => {
+  if (props.annotationsSchema && currentTask.value && currentTask.value.field) {
+    const fieldName = currentTask.value.field;
+    const annotationsProperties = props.annotationsSchema.schemas.Annotations.properties;
+    if (annotationsProperties && annotationsProperties[fieldName]) {
+      let fieldSchemaValue = {
+        ...annotationsProperties[fieldName],
+        $id: `#/fieldSchema/${fieldName}`
+      };
+
+      if (fieldSchemaValue.nullable === true) {
+        fieldSchemaValue = {
+          oneOf: [
+            { type: 'null' },
+            { ...fieldSchemaValue, nullable: undefined }
+          ]
+        };
+      }
+
+      if (fieldName === 'repository') {
+        fieldSchemaValue.format = 'uri';
+      }
+
+      return fieldSchemaValue;
+    }
+  }
+  return null;
+});
+
+const isArrayType = computed(() => {
+  if (!props.annotationsSchema || !currentTask.value || !currentTask.value.field) {
+    return false;
+  }
+  const fieldName = currentTask.value.field;
+  const fieldProperties = props.annotationsSchema.schemas.Annotations.properties;
+  return fieldProperties[fieldName]?.type === 'array';
+});
+
+const validateInput = (input) => {
+  if (fieldSchema.value) {
+    try {
+      const validate = ajv.compile(fieldSchema.value);
+      if (isArrayType.value && Array.isArray(input) && input.length === 0) {
+        return false;
+      }
+      return validate(input);
+    } catch (e) {
+      console.error('Error compiling validator for field:', e);
+      return true; // If we can't validate, assume it's valid
+    }
+  }
+  return true;
+};
 const currentUserInput = computed({
   get: () => {
     if (currentTask.value) {
       const input = taskInputs.value[currentTask.value.id];
-      if (props.isArrayType) {
+      if (isArrayType.value) {
         return Array.isArray(input) ? input : [];
       }
       return input ?? '';
@@ -57,6 +120,33 @@ const fieldDescription = computed(() => {
     return fieldProperties[fieldName]?.description || `Enter ${toHumanReadable(fieldName)}`;
   }
   return '';
+});
+
+const fieldInputOptions = computed(() => {
+  if (!props.annotationsSchema || !currentTask.value || !currentTask.value.field) {
+    return [];
+  }
+
+  const fieldName = currentTask.value.field;
+  const fieldProperties = props.annotationsSchema.schemas.Annotations.properties;
+  const fieldSchema = fieldProperties[fieldName];
+
+  let options = [];
+
+  if (fieldSchema?.type === 'array' && fieldSchema.items?.$ref) {
+    const enumName = fieldSchema.items.$ref.split('/').pop();
+    const enumSchema = props.annotationsSchema.schemas[enumName];
+    options = enumSchema?.enum || [];
+  } else if (fieldSchema?.allOf && fieldSchema.allOf[0]?.$ref) {
+    const enumName = fieldSchema.allOf[0].$ref.split('/').pop();
+    const enumSchema = props.annotationsSchema.schemas[enumName];
+    options = enumSchema?.enum || [];
+  }
+
+  return options.map(option => ({
+    value: option,
+    label: toHumanReadable(option)
+  }));
 });
 
 const getPlaceholder = (fieldName) => {
@@ -90,14 +180,14 @@ const getInputType = (fieldName) => {
 };
 
 const addArrayItem = () => {
-  if (props.isArrayType) {
+  if (isArrayType.value) {
     const newInput = Array.isArray(currentUserInput.value) ? [...currentUserInput.value, ''] : [''];
     currentUserInput.value = newInput;
   }
 };
 
 const removeArrayItem = (index) => {
-  if (props.isArrayType && Array.isArray(currentUserInput.value)) {
+  if (isArrayType.value && Array.isArray(currentUserInput.value)) {
     const newInput = [...currentUserInput.value];
     newInput.splice(index, 1);
     currentUserInput.value = newInput;
@@ -115,7 +205,7 @@ const handleEnterKey = (event) => {
 
 const submitContribution = async () => {
   if (isSubmitting.value) return;
-  
+
   isSubmitting.value = true;
   hasAttemptedSubmit.value = true;
   console.log('submitContribution called');
@@ -129,7 +219,7 @@ const submitContribution = async () => {
     return;
   }
 
-  if (!props.validateInput(currentUserInput.value)) {
+  if (!validateInput(currentUserInput.value)) {
     console.log('Input validation failed');
     validationError.value = 'Invalid input';
     isSubmitting.value = false;
@@ -168,9 +258,9 @@ const focusInput = () => {
   });
 };
 
-watch(() => props.currentTaskIndex, () => {
+watch(() => currentTaskIndex.value, () => {
   if (currentTask.value && !(currentTask.value.id in taskInputs.value)) {
-    taskInputs.value[currentTask.value.id] = props.isArrayType ? [] : '';
+    taskInputs.value[currentTask.value.id] = isArrayType.value ? [] : '';
   }
   hasAttemptedSubmit.value = false;
   validationError.value = '';
@@ -179,7 +269,7 @@ watch(() => props.currentTaskIndex, () => {
 
 onMounted(() => {
   if (currentTask.value) {
-    taskInputs.value[currentTask.value.id] = props.isArrayType ? [] : '';
+    taskInputs.value[currentTask.value.id] = isArrayType.value ? [] : '';
   }
   window.addEventListener('keydown', handleKeydown);
   focusInput();
@@ -196,8 +286,8 @@ const taskIndicators = computed(() => {
   }));
 });
 
-const isFirstTask = computed(() => props.currentTaskIndex === 0);
-const isLastTask = computed(() => props.currentTaskIndex === props.tasks.length - 1);
+const isFirstTask = computed(() => currentTaskIndex.value === 0);
+const isLastTask = computed(() => currentTaskIndex.value === props.tasks.length - 1);
 
 const changeTask = (direction) => {
   isTaskChanging.value = true;
@@ -214,13 +304,13 @@ const changeTask = (direction) => {
 
 const nextTask = () => {
   if (!isLastTask.value) {
-    emit('update:current-task-index', props.currentTaskIndex + 1);
+    currentTaskIndex.value += 1;
   }
 };
 
 const previousTask = () => {
   if (!isFirstTask.value) {
-    emit('update:current-task-index', props.currentTaskIndex - 1);
+    currentTaskIndex.value -= 1;
   }
 };
 
