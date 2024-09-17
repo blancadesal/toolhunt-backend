@@ -1,9 +1,5 @@
 <script setup>
-import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
-import { useAuth } from '~/composables/useAuth';
-
 const props = defineProps({
-  currentTask: Object,
   tasks: Array,
   submittedTasks: Set,
   currentTaskIndex: Number,
@@ -20,15 +16,23 @@ const props = defineProps({
   validateInput: Function,
 });
 
-const emit = defineEmits(['update:currentUserInput', 'changeTask', 'submitContribution', 'loadNewBatch']);
+const emit = defineEmits([
+  'update:currentUserInput',
+  'changeTask',
+  'submitContribution',
+  'loadNewBatch',
+  'update:validationError' // Add this line
+]);
 
 const { isLoggedIn } = useAuth();
 
 const inputRef = ref(null);
 
+const currentTask = computed(() => props.tasks[props.currentTaskIndex] || null);
+
 const fieldDescription = computed(() => {
-  if (props.annotationsSchema && props.currentTask && props.currentTask.field) {
-    const fieldName = props.currentTask.field;
+  if (props.annotationsSchema && currentTask.value && currentTask.value.field) {
+    const fieldName = currentTask.value.field;
     const fieldProperties = props.annotationsSchema.schemas.Annotations.properties;
     return fieldProperties[fieldName]?.description || `Enter ${toHumanReadable(fieldName)}`;
   }
@@ -84,6 +88,8 @@ const updateCurrentUserInput = (value) => {
   emit('update:currentUserInput', value);
 };
 
+const isSubmitting = ref(false);
+
 const handleKeydown = (event) => {
   if (event.key === 'ArrowLeft' && !props.isFirstTask) {
     emit('changeTask', 'previous');
@@ -92,23 +98,51 @@ const handleKeydown = (event) => {
   }
 };
 
+const handleEnterKey = (event) => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    if (!isSubmitting.value) {
+      submitContribution();
+    }
+  }
+};
+
 const submitContribution = () => {
-  if (!isLoggedIn || !props.currentTask) {
+  if (isSubmitting.value) return;
+  
+  isSubmitting.value = true;
+  console.log('submitContribution called');
+  console.log('isLoggedIn:', isLoggedIn);
+  console.log('currentTask:', currentTask.value);
+  console.log('currentUserInput:', props.currentUserInput);
+
+  if (!isLoggedIn || !currentTask.value) {
+    console.log('Returning early: not logged in or no current task');
+    isSubmitting.value = false;
     return;
   }
 
   if (!props.validateInput()) {
+    console.log('Input validation failed');
     emit('update:validationError', 'Invalid input');
+    isSubmitting.value = false;
     return;
   }
 
+  console.log('Submitted input:', props.currentUserInput);
+
   emit('update:validationError', '');
   emit('submitContribution');
+  
+  // Reset isSubmitting after a short delay
+  setTimeout(() => {
+    isSubmitting.value = false;
+  }, 300);
 };
 
-watch(() => props.currentTask, () => {
+watch(() => currentTask.value, () => {
   nextTick(() => {
-    if (inputRef.value && !props.isArrayType && !props.currentTask.field.input_options) {
+    if (inputRef.value && !props.isArrayType && !currentTask.value.field.input_options) {
       inputRef.value.focus();
     }
   });
@@ -180,6 +214,7 @@ const taskIndicators = computed(() => {
             v-if="!isArrayType && fieldInputOptions.length > 0"
             :value="currentUserInput"
             @input="updateCurrentUserInput($event.target.value)"
+            @keydown="handleEnterKey"
             class="select select-bordered w-full"
             :disabled="isCurrentTaskSubmitted"
           >
@@ -202,6 +237,7 @@ const taskIndicators = computed(() => {
                     ? [...currentUserInput, option.value]
                     : currentUserInput.filter(v => v !== option.value)
                 )"
+                @keydown="handleEnterKey"
                 class="checkbox checkbox-primary border-2 mr-2"
                 :disabled="isCurrentTaskSubmitted"
               />
@@ -217,6 +253,7 @@ const taskIndicators = computed(() => {
                 @input="updateCurrentUserInput(
                   currentUserInput.map((v, i) => i === index ? $event.target.value : v)
                 )"
+                @keydown="handleEnterKey"
                 type="text"
                 :placeholder="`Enter item ${index + 1}`"
                 class="input input-bordered flex-grow"
@@ -229,14 +266,14 @@ const taskIndicators = computed(() => {
 
           <!-- Single input for non-array types -->
           <input
-            v-else
+            v-if="!isArrayType && fieldInputOptions.length === 0"
             ref="inputRef"
             :value="currentUserInput"
             @input="updateCurrentUserInput($event.target.value)"
             :type="getInputType(currentTask.field)"
             :placeholder="getPlaceholder(currentTask.field)"
             class="input input-bordered w-full"
-            @keyup.enter="$emit('submitContribution')"
+            @keydown="handleEnterKey"
             :disabled="isCurrentTaskSubmitted"
           />
 
@@ -256,9 +293,9 @@ const taskIndicators = computed(() => {
           &lt; Previous
         </button>
         <button
-          @click="$emit('submitContribution')"
+          @click="submitContribution"
           class="btn btn-primary mr-2"
-          :disabled="!isLoggedIn || isCurrentTaskSubmitted || isTaskChanging || (isArrayType && Array.isArray(currentUserInput) && currentUserInput.length === 0)"
+          :disabled="!isLoggedIn || isCurrentTaskSubmitted || isTaskChanging || isSubmitting || (isArrayType && Array.isArray(currentUserInput) && currentUserInput.length === 0)"
         >
           {{ isCurrentTaskSubmitted ? 'Submitted' : (isLoggedIn ? 'Submit' : 'Login to Submit') }}
         </button>

@@ -14,21 +14,19 @@ const taskInputs = ref({});
 const isLoading = ref(true);
 const isTaskChanging = ref(false);
 
-const currentTask = computed(() => tasks.value[currentTaskIndex.value] || null);
-
 const isArrayType = computed(() => {
-  if (!annotationsSchema.value || !currentTask.value || !currentTask.value.field) {
+  if (!annotationsSchema.value || !tasks.value[currentTaskIndex.value] || !tasks.value[currentTaskIndex.value].field) {
     return false;
   }
-  const fieldName = currentTask.value.field;
+  const fieldName = tasks.value[currentTaskIndex.value].field;
   const fieldProperties = annotationsSchema.value.schemas.Annotations.properties;
   return fieldProperties[fieldName]?.type === 'array';
 });
 
 const currentUserInput = computed({
   get: () => {
-    if (currentTask.value) {
-      const input = taskInputs.value[currentTask.value.id];
+    if (tasks.value[currentTaskIndex.value]) {
+      const input = taskInputs.value[tasks.value[currentTaskIndex.value].id];
       if (isArrayType.value) {
         return Array.isArray(input) ? input : [];
       }
@@ -37,8 +35,8 @@ const currentUserInput = computed({
     return '';
   },
   set: (value) => {
-    if (currentTask.value) {
-      taskInputs.value[currentTask.value.id] = value;
+    if (tasks.value[currentTaskIndex.value]) {
+      taskInputs.value[tasks.value[currentTaskIndex.value].id] = value;
     }
   }
 });
@@ -60,9 +58,9 @@ watch(annotationsSchema, (newValue) => {
   }
 });
 
-watch([annotationsSchema, currentTask], ([annotationsSchemaValue, currentTaskValue]) => {
-  if (annotationsSchemaValue && currentTaskValue && currentTaskValue.field) {
-    const fieldName = currentTaskValue.field;
+watch([annotationsSchema, tasks, currentTaskIndex], ([annotationsSchemaValue, tasksValue, currentTaskIndexValue]) => {
+  if (annotationsSchemaValue && tasksValue[currentTaskIndexValue] && tasksValue[currentTaskIndexValue].field) {
+    const fieldName = tasksValue[currentTaskIndexValue].field;
     const annotationsProperties = annotationsSchemaValue.schemas.Annotations.properties;
     if (annotationsProperties && annotationsProperties[fieldName]) {
       let fieldSchemaValue = {
@@ -133,7 +131,7 @@ const validateInput = () => {
 };
 
 const submitContribution = async () => {
-  if (!isLoggedIn.value || !currentTask.value) {
+  if (!isLoggedIn.value || !tasks.value[currentTaskIndex.value]) {
     return;
   }
 
@@ -145,7 +143,7 @@ const submitContribution = async () => {
   }
 
   validationError.value = '';
-  submittedTasks.value.add(currentTask.value.id);
+  submittedTasks.value.add(tasks.value[currentTaskIndex.value].id);
   nextTask();
 };
 
@@ -196,7 +194,7 @@ const clearFilters = async () => {
 };
 
 const isCurrentTaskSubmitted = computed(() => {
-  return currentTask.value && submittedTasks.value.has(currentTask.value.id);
+  return tasks.value[currentTaskIndex.value] && submittedTasks.value.has(tasks.value[currentTaskIndex.value].id);
 });
 
 const isLastTask = computed(() => currentTaskIndex.value === tasks.value.length - 1);
@@ -219,11 +217,11 @@ const loadNewBatch = async () => {
 };
 
 const fieldInputOptions = computed(() => {
-  if (!annotationsSchema.value || !currentTask.value || !currentTask.value.field) {
+  if (!annotationsSchema.value || !tasks.value[currentTaskIndex.value] || !tasks.value[currentTaskIndex.value].field) {
     return [];
   }
 
-  const fieldName = currentTask.value.field;
+  const fieldName = tasks.value[currentTaskIndex.value].field;
   const fieldProperties = annotationsSchema.value.schemas.Annotations.properties;
   const fieldSchema = fieldProperties[fieldName];
 
@@ -282,8 +280,7 @@ onMounted(async () => {
     </div>
 
     <TaskCard
-      v-else-if="currentTask"
-      :current-task="currentTask"
+      v-else-if="tasks.length > 0"
       :tasks="tasks"
       :submitted-tasks="submittedTasks"
       :current-task-index="currentTaskIndex"
