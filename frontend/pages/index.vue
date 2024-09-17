@@ -200,13 +200,6 @@ const clearFilters = async () => {
   isLoading.value = false;
 };
 
-const taskIndicators = computed(() => {
-  return tasks.value.map(task => ({
-    id: task.id,
-    completed: submittedTasks.value.has(task.id)
-  }));
-});
-
 const isCurrentTaskSubmitted = computed(() => {
   return currentTask.value && submittedTasks.value.has(currentTask.value.id);
 });
@@ -309,7 +302,8 @@ onMounted(async () => {
     <TaskCard
       v-else-if="currentTask"
       :current-task="currentTask"
-      :task-indicators="taskIndicators"
+      :tasks="tasks"
+      :submitted-tasks="submittedTasks"
       :current-task-index="currentTaskIndex"
       :annotations-schema="annotationsSchema"
       :is-current-task-submitted="isCurrentTaskSubmitted"

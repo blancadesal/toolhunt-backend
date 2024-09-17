@@ -4,7 +4,8 @@ import { useAuth } from '~/composables/useAuth';
 
 const props = defineProps({
   currentTask: Object,
-  taskIndicators: Array,
+  tasks: Array,
+  submittedTasks: Set,
   currentTaskIndex: Number,
   annotationsSchema: Object,
   isCurrentTaskSubmitted: Boolean,
@@ -130,9 +131,15 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown);
 });
+
+// New computed property for taskIndicators
+const taskIndicators = computed(() => {
+  return props.tasks.map(task => ({
+    id: task.id,
+    completed: props.submittedTasks.has(task.id)
+  }));
+});
 </script>
-
-
 
 <template>
   <div
