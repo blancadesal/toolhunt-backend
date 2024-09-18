@@ -14,25 +14,25 @@ export function useTaskNavigation(tasks: Ref<any[]>) {
     }
   };
 
-  const navigateTask = (direction: 'next' | 'previous', onNewBatch: () => void) => {
+  const navigateTask = (direction: 'next' | 'previous', onNewBatch?: () => void) => {
     isTaskChanging.value = true;
     setTimeout(() => {
       if (direction === 'next' && !isLastTask.value) {
         changeTask('next');
       } else if (direction === 'previous' && !isFirstTask.value) {
         changeTask('previous');
-      } else if (direction === 'next' && isLastTask.value) {
+      } else if (direction === 'next' && isLastTask.value && onNewBatch) {
         onNewBatch();
       }
       isTaskChanging.value = false;
     }, 150);
   };
 
-  const handleKeyNavigation = (event: KeyboardEvent) => {
+  const handleKeyNavigation = (event: KeyboardEvent, onNewBatch?: () => void) => {
     if (event.key === 'ArrowLeft') {
-      navigateTask('previous', () => {});
+      navigateTask('previous');
     } else if (event.key === 'ArrowRight') {
-      navigateTask('next', () => {});
+      navigateTask('next', onNewBatch);
     }
   };
 

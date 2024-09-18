@@ -251,10 +251,6 @@ const submitContribution = async () => {
   isSubmitting.value = true;
   hasAttemptedSubmit.value = true;
   console.log('submitContribution called');
-  console.log('isLoggedIn:', isLoggedIn.value);
-  console.log('currentTask:', currentTask.value);
-  console.log('currentUserInput:', currentUserInput.value);
-  console.log('User:', authState.value.user);
 
   if (!isLoggedIn.value || !currentTask.value || !authState.value.user) {
     console.log('Returning early: not logged in, no current task, or no user data');
@@ -273,15 +269,33 @@ const submitContribution = async () => {
   validationError.value = '';
   submittedTasks.value.add(currentTask.value.id);
 
+  // Create submission object
+  const submission = {
+    tool: currentTask.value.tool.name,
+    tool_title: currentTask.value.tool.title,
+    field: currentTask.value.field,
+    user: authState.value.user.id,
+    completed_date: new Date().toISOString(),
+    value: currentUserInput.value
+  };
+
+  // Log the submission object
+  console.log('Submission object:', submission);
+
   // Here you would typically make an API call to submit the contribution
-  // For now, we'll just log it
-  console.log('Contribution submitted:', currentUserInput.value);
+  // For example:
+  // try {
+  //   await api.submitContribution(submission);
+  //   console.log('Contribution submitted successfully');
+  // } catch (error) {
+  //   console.error('Error submitting contribution:', error);
+  //   // Handle error (e.g., show error message to user)
+  // }
 
   // Reset isSubmitting after a short delay
   setTimeout(() => {
     isSubmitting.value = false;
-    // Move to the next task after successful submission
-    navigateTask('next', () => emit('load-new-batch'));
+    navigateTask('next');
   }, 100);
 };
 
