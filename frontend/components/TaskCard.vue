@@ -158,14 +158,14 @@ const taskIndicators = computed(() => {
 });
 
 const isSubmitDisabled = computed(() => {
-  const hasNoInput = isArrayType.value 
+  const hasNoInput = isArrayType.value
     ? !currentUserInput.value || currentUserInput.value.length === 0
     : !currentUserInput.value;
 
-  return !isLoggedIn.value || 
-         isCurrentTaskSubmitted.value || 
-         isTaskChanging.value || 
-         isSubmitting.value || 
+  return !isLoggedIn.value ||
+         isCurrentTaskSubmitted.value ||
+         isTaskChanging.value ||
+         isSubmitting.value ||
          hasNoInput;
 });
 

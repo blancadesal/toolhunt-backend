@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from tortoise.functions import Count
 
@@ -87,7 +87,9 @@ class UserContributionsResponse(BaseModel):
 @router.get("/contributions/{username}", response_model=UserContributionsResponse)
 async def get_user_contributions(
     username: str,
-    limit: Optional[int] = Query(10, ge=1, le=100, description="Maximum number of results to return")
+    limit: Optional[int] = Query(
+        10, ge=1, le=100, description="Maximum number of results to return"
+    ),
 ):
     # First, check if the user exists
     user_exists = await User.filter(username=username).exists()
@@ -98,18 +100,21 @@ async def get_user_contributions(
     total_contributions = await CompletedTask.filter(user=username).count()
 
     # Get the limited list of contributions
-    contributions = await CompletedTask.filter(user=username) \
-        .order_by("-completed_date") \
-        .limit(limit) \
+    contributions = (
+        await CompletedTask.filter(user=username)
+        .order_by("-completed_date")
+        .limit(limit)
         .values("completed_date", "tool_title", "field")
+    )
 
     return UserContributionsResponse(
         contributions=[
             UserContribution(
                 date=contrib["completed_date"],
                 tool_title=contrib["tool_title"],
-                field=contrib["field"]
-            ) for contrib in contributions
+                field=contrib["field"],
+            )
+            for contrib in contributions
         ],
-        total_contributions=total_contributions
+        total_contributions=total_contributions,
     )
