@@ -43,6 +43,17 @@ export interface ContributionsParams {
   limit?: number;
 }
 
+export interface UserContribution {
+  date: string;
+  tool_title: string;
+  field: string;
+}
+
+export interface UserContributionsResponse {
+  contributions: UserContribution[];
+  total_contributions: number;
+}
+
 const API_BASE_URL = 'http://localhost:8082/api/v1'
 
 class ToolhuntApiClient {
@@ -148,7 +159,14 @@ class ToolhuntApiClient {
     return response.json();
   }
 
-  // Add other API methods as needed
+  async fetchUserContributions(username: string, limit?: number): Promise<UserContributionsResponse> {
+    let url = `/metrics/contributions/${encodeURIComponent(username)}`;
+    if (limit !== undefined) {
+      url += `?limit=${limit}`;
+    }
+    const response = await this.fetchWithAuth(url);
+    return response.json();
+  }
 }
 
 export const toolhuntApi = new ToolhuntApiClient()
