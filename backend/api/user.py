@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -8,9 +9,10 @@ from tortoise.exceptions import DoesNotExist
 from backend.config import get_settings
 from backend.models.pydantic import Token, User
 from backend.models.tortoise import User as DBUser
-from backend.security import ALGORITHM, decrypt_token, encrypt_token
+from backend.security import ALGORITHM, InvalidToken, decrypt_token, encrypt_token
 
 router = APIRouter(prefix="/user", tags=["users"])
+logger = logging.getLogger(__name__)
 
 
 # helpers
@@ -26,9 +28,13 @@ async def fetch_user_data(access_token):
 async def get_user_token(user_id: str) -> Token:
     try:
         user = await DBUser.get(id=user_id)
-        return await decrypt_token(user.token)
+        if user.encrypted_token is None:
+            raise HTTPException(status_code=401, detail="No token found for user")
+        return await decrypt_token(user.encrypted_token)
     except DoesNotExist:
         raise HTTPException(status_code=404, detail="User not found")
+    except InvalidToken as e:
+        raise HTTPException(status_code=401, detail=str(e))
 
 
 async def get_current_user(access_token: str = Cookie(None)) -> User:
@@ -63,14 +69,19 @@ settings = get_settings()
 async def create_or_update_user(user_data, token_response):
     user_id = str(user_data["id"])
     token = Token(**token_response)
-    encrypted_token = await encrypt_token(token)
+
+    try:
+        encrypted_token = await encrypt_token(token)
+    except Exception as e:
+        logger.error(f"Error encrypting token for user {user_id}: {str(e)}")
+        encrypted_token = None
 
     user, _ = await DBUser.update_or_create(
         id=user_id,
         defaults={
             "username": user_data["username"],
             "email": user_data["email"],
-            "token": encrypted_token,
+            "encrypted_token": encrypted_token,
             "token_expires_at": datetime.now(UTC) + timedelta(seconds=token.expires_in),
         },
     )

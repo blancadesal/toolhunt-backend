@@ -1,9 +1,10 @@
 import asyncio
-import base64
+import json
 from datetime import UTC, datetime, timedelta
 
 import httpx
 from cryptography.fernet import Fernet
+from cryptography.fernet import InvalidToken as FernetInvalidToken
 from jose import jwt
 
 from backend.config import get_settings
@@ -15,6 +16,11 @@ settings = get_settings()
 
 # Create a Fernet instance for token encryption
 fernet = Fernet(settings.ENCRYPTION_KEY)
+
+
+# Add this new exception
+class InvalidToken(Exception):
+    pass
 
 
 async def exchange_code_for_token(code):
@@ -40,11 +46,16 @@ def create_access_token(subject: str, expires_delta: timedelta):
 
 
 async def encrypt_token(token: Token) -> bytes:
-    token_str = base64.b64encode(str(token.dict()).encode())
-    return await asyncio.to_thread(fernet.encrypt, token_str)
+    token_str = json.dumps(token.dict())
+    return await asyncio.to_thread(fernet.encrypt, token_str.encode())
 
 
 async def decrypt_token(encrypted_token: bytes) -> Token:
-    decrypted = await asyncio.to_thread(fernet.decrypt, encrypted_token)
-    token_dict = eval(base64.b64decode(decrypted).decode())
-    return Token(**token_dict)
+    try:
+        decrypted = await asyncio.to_thread(fernet.decrypt, encrypted_token)
+        token_dict = json.loads(decrypted.decode())
+        return Token(**token_dict)
+    except FernetInvalidToken:
+        raise InvalidToken("The token is invalid or has been tampered with")
+    except json.JSONDecodeError:
+        raise InvalidToken("The decrypted token is not valid JSON")

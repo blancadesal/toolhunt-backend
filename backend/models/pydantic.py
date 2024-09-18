@@ -40,9 +40,5 @@ class User(BaseModel):
     id: str
     username: str
     email: str
-    token: Optional[Token] = None
-    token_expires_at: Optional[datetime] = None
-
-
-class UserInDB(User):
     encrypted_token: Optional[bytes] = None
+    token_expires_at: Optional[datetime] = None

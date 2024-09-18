@@ -8,10 +8,8 @@ from fastapi.responses import RedirectResponse
 
 from backend.api.user import create_or_update_user, fetch_user_data
 from backend.config import get_settings
-from backend.security import (
-    create_access_token,
-    exchange_code_for_token,
-)
+from backend.models.tortoise import User as DBUser
+from backend.security import create_access_token, decrypt_token, exchange_code_for_token
 
 router = APIRouter(prefix="/auth", tags=["auth"], include_in_schema=False)
 settings = get_settings()
@@ -69,7 +67,26 @@ async def oauth_callback(request: Request, response: Response):
     user_data = await fetch_user_data(token_response["access_token"])
     logger.info(f"Fetched user data: {user_data}")
 
-    db_user = await create_or_update_user(user_data, token_response)
+    try:
+        db_user = await create_or_update_user(user_data, token_response)
+    except Exception as e:
+        logger.error(f"Error creating or updating user: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error processing user data")
+
+    # Test token retrieval and decryption
+    try:
+        stored_user = await DBUser.get(id=db_user.id)
+        if stored_user.encrypted_token:
+            decrypted_token = await decrypt_token(stored_user.encrypted_token)
+            logger.info(
+                f"Successfully retrieved and decrypted token for user {db_user.username}"
+            )
+            logger.info(f"Decrypted token: {decrypted_token}")
+        else:
+            logger.warning(f"No token stored for user {db_user.username}")
+    except Exception as e:
+        logger.error(f"Error retrieving or decrypting token: {str(e)}")
+
     access_token = create_access_token(
         subject=str(db_user.id),
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
