@@ -1,18 +1,16 @@
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
-import { debounce } from 'lodash-es';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 
+// Props and emits
 const props = defineProps({
   tasks: Array,
   annotationsSchema: Object,
 });
 
-const emit = defineEmits([
-  'load-new-batch',
-]);
+const emit = defineEmits(['load-new-batch']);
 
+// Composables
 const { isLoggedIn } = useAuth();
 
 const tasksRef = computed(() => props.tasks);
@@ -21,21 +19,24 @@ const {
   currentTask,
   isFirstTask,
   isLastTask,
-  changeTask
+  isTaskChanging,
+  navigateTask,
+  handleKeyNavigation
 } = useTaskNavigation(tasksRef);
 
+// Refs
 const inputRef = ref(null);
 const submittedTasks = ref(new Set());
 const isSubmitting = ref(false);
 const hasAttemptedSubmit = ref(false);
 const taskInputs = ref({});
 const validationError = ref('');
-const isTaskChanging = ref(false);
 
+// Ajv setup
 const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
 addFormats(ajv);
 
-// Add all schemas from annotationsSchema to Ajv
+// Watchers
 watch(() => props.annotationsSchema, (newValue) => {
   if (newValue && newValue.schemas) {
     Object.entries(newValue.schemas).forEach(([key, schema]) => {
@@ -44,64 +45,64 @@ watch(() => props.annotationsSchema, (newValue) => {
   }
 }, { immediate: true });
 
+watch(() => currentTaskIndex.value, () => {
+  if (currentTask.value && !(currentTask.value.id in taskInputs.value)) {
+    taskInputs.value[currentTask.value.id] = isArrayType.value ? [] : '';
+  }
+  hasAttemptedSubmit.value = false;
+  validationError.value = '';
+  focusInput();
+});
 
+// Lifecycle hooks
+onMounted(() => {
+  if (currentTask.value) {
+    taskInputs.value[currentTask.value.id] = isArrayType.value ? [] : '';
+  }
+  window.addEventListener('keydown', handleKeyNavigation);
+  focusInput();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeyNavigation);
+});
+
+// Computed properties
 const isCurrentTaskSubmitted = computed(() => {
   return currentTask.value && submittedTasks.value.has(currentTask.value.id);
 });
 
 const fieldSchema = computed(() => {
-  if (props.annotationsSchema && currentTask.value && currentTask.value.field) {
-    const fieldName = currentTask.value.field;
-    const annotationsProperties = props.annotationsSchema.schemas.Annotations.properties;
-    if (annotationsProperties && annotationsProperties[fieldName]) {
-      let fieldSchemaValue = {
-        ...annotationsProperties[fieldName],
-        $id: `#/fieldSchema/${fieldName}`
-      };
+  const fieldName = currentTask.value?.field;
+  const fieldProperties = props.annotationsSchema?.schemas?.Annotations?.properties?.[fieldName];
 
-      if (fieldSchemaValue.nullable === true) {
-        fieldSchemaValue = {
-          oneOf: [
-            { type: 'null' },
-            { ...fieldSchemaValue, nullable: undefined }
-          ]
-        };
-      }
+  if (!fieldProperties) return null;
 
-      if (fieldName === 'repository') {
-        fieldSchemaValue.format = 'uri';
-      }
+  let fieldSchemaValue = {
+    ...fieldProperties,
+    $id: `#/fieldSchema/${fieldName}`
+  };
 
-      return fieldSchemaValue;
-    }
+  if (fieldSchemaValue.nullable === true) {
+    fieldSchemaValue = {
+      oneOf: [
+        { type: 'null' },
+        { ...fieldSchemaValue, nullable: undefined }
+      ]
+    };
   }
-  return null;
+
+  if (fieldName === 'repository') {
+    fieldSchemaValue.format = 'uri';
+  }
+
+  return fieldSchemaValue;
 });
 
 const isArrayType = computed(() => {
-  if (!props.annotationsSchema || !currentTask.value || !currentTask.value.field) {
-    return false;
-  }
-  const fieldName = currentTask.value.field;
-  const fieldProperties = props.annotationsSchema.schemas.Annotations.properties;
-  return fieldProperties[fieldName]?.type === 'array';
+  const fieldName = currentTask.value?.field;
+  return props.annotationsSchema?.schemas?.Annotations?.properties?.[fieldName]?.type === 'array';
 });
-
-const validateInput = (input) => {
-  if (fieldSchema.value) {
-    try {
-      const validate = ajv.compile(fieldSchema.value);
-      if (isArrayType.value && Array.isArray(input) && input.length === 0) {
-        return false;
-      }
-      return validate(input);
-    } catch (e) {
-      console.error('Error compiling validator for field:', e);
-      return true; // If we can't validate, assume it's valid
-    }
-  }
-  return true;
-};
 
 const currentUserInput = computed({
   get: () => {
@@ -122,33 +123,25 @@ const currentUserInput = computed({
 });
 
 const fieldDescription = computed(() => {
-  if (props.annotationsSchema && currentTask.value && currentTask.value.field) {
-    const fieldName = currentTask.value.field;
-    const fieldProperties = props.annotationsSchema.schemas.Annotations.properties;
-    return fieldProperties[fieldName]?.description || `Enter ${toHumanReadable(fieldName)}`;
-  }
-  return '';
+  const fieldName = currentTask.value?.field;
+  const description = props.annotationsSchema?.schemas?.Annotations?.properties?.[fieldName]?.description;
+  return description ?? `Enter ${toHumanReadable(fieldName)}`;
 });
 
 const fieldInputOptions = computed(() => {
-  if (!props.annotationsSchema || !currentTask.value || !currentTask.value.field) {
-    return [];
-  }
+  const fieldName = currentTask.value?.field;
+  const fieldSchema = props.annotationsSchema?.schemas?.Annotations?.properties?.[fieldName];
 
-  const fieldName = currentTask.value.field;
-  const fieldProperties = props.annotationsSchema.schemas.Annotations.properties;
-  const fieldSchema = fieldProperties[fieldName];
+  if (!fieldSchema) return [];
 
   let options = [];
 
-  if (fieldSchema?.type === 'array' && fieldSchema.items?.$ref) {
+  if (fieldSchema.type === 'array' && fieldSchema.items?.$ref) {
     const enumName = fieldSchema.items.$ref.split('/').pop();
-    const enumSchema = props.annotationsSchema.schemas[enumName];
-    options = enumSchema?.enum || [];
-  } else if (fieldSchema?.allOf && fieldSchema.allOf[0]?.$ref) {
+    options = props.annotationsSchema?.schemas?.[enumName]?.enum ?? [];
+  } else if (fieldSchema.allOf?.[0]?.$ref) {
     const enumName = fieldSchema.allOf[0].$ref.split('/').pop();
-    const enumSchema = props.annotationsSchema.schemas[enumName];
-    options = enumSchema?.enum || [];
+    options = props.annotationsSchema?.schemas?.[enumName]?.enum ?? [];
   }
 
   return options.map(option => ({
@@ -156,6 +149,45 @@ const fieldInputOptions = computed(() => {
     label: toHumanReadable(option)
   }));
 });
+
+const taskIndicators = computed(() => {
+  return props.tasks.map((task, index) => ({
+    index,
+    completed: submittedTasks.value.has(task.id)
+  }));
+});
+
+// Methods
+const validateInput = (input) => {
+  if (fieldSchema.value) {
+    try {
+      const validate = ajv.compile(fieldSchema.value);
+      if (isArrayType.value && Array.isArray(input) && input.length === 0) {
+        return { isValid: false, error: 'Input cannot be empty' };
+      }
+      const isValid = validate(input);
+      if (!isValid) {
+        // Look for format or pattern errors
+        const formatError = validate.errors.find(e => e.keyword === 'format');
+        const patternError = validate.errors.find(e => e.keyword === 'pattern');
+        
+        if (formatError) {
+          return { isValid: false, error: `Input must match format "${formatError.params.format}"` };
+        } else if (patternError) {
+          return { isValid: false, error: `Input must match pattern "${patternError.params.pattern}"` };
+        }
+        
+        // If no format or pattern error, return a generic message
+        return { isValid: false, error: 'Invalid input' };
+      }
+      return { isValid: true, error: null };
+    } catch (e) {
+      console.error('Error compiling validator for field:', e);
+      return { isValid: true, error: null }; // If we can't validate, assume it's valid
+    }
+  }
+  return { isValid: true, error: null };
+};
 
 const getPlaceholder = (fieldName) => {
   switch (fieldName) {
@@ -227,9 +259,10 @@ const submitContribution = async () => {
     return;
   }
 
-  if (!validateInput(currentUserInput.value)) {
+  const { isValid, error } = validateInput(currentUserInput.value);
+  if (!isValid) {
     console.log('Input validation failed');
-    validationError.value = 'Invalid input';
+    validationError.value = error || 'Invalid input';
     isSubmitting.value = false;
     return;
   }
@@ -245,18 +278,15 @@ const submitContribution = async () => {
   setTimeout(() => {
     isSubmitting.value = false;
     // Move to the next task after successful submission
-    changeTask('next');
+    navigateTask('next', () => emit('load-new-batch'));
   }, 100);
 };
 
-const resetSubmittedTasks = () => {
-  submittedTasks.value.clear();
-  hasAttemptedSubmit.value = false;
-  taskInputs.value = {};
-};
-
-// Expose the resetSubmittedTasks method to the parent component
-defineExpose({ resetSubmittedTasks });
+// const resetSubmittedTasks = () => {
+//   submittedTasks.value.clear();
+//   hasAttemptedSubmit.value = false;
+//   taskInputs.value = {};
+// };
 
 const focusInput = () => {
   nextTick(() => {
@@ -266,41 +296,8 @@ const focusInput = () => {
   });
 };
 
-watch(() => currentTaskIndex.value, () => {
-  if (currentTask.value && !(currentTask.value.id in taskInputs.value)) {
-    taskInputs.value[currentTask.value.id] = isArrayType.value ? [] : '';
-  }
-  hasAttemptedSubmit.value = false;
-  validationError.value = '';
-  focusInput();
-});
-
-onMounted(() => {
-  if (currentTask.value) {
-    taskInputs.value[currentTask.value.id] = isArrayType.value ? [] : '';
-  }
-  window.addEventListener('keydown', handleKeydown);
-  focusInput();
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleKeydown);
-});
-
-const taskIndicators = computed(() => {
-  return props.tasks.map((task, index) => ({
-    index,
-    completed: submittedTasks.value.has(task.id)
-  }));
-});
-
-const handleKeydown = (event) => {
-  if (event.key === 'ArrowLeft' && !isFirstTask.value) {
-    changeTask('previous');
-  } else if (event.key === 'ArrowRight' && !isLastTask.value) {
-    changeTask('next');
-  }
-};
+// // Expose methods
+// defineExpose({ resetSubmittedTasks });
 </script>
 
 <template>
@@ -421,7 +418,7 @@ const handleKeydown = (event) => {
       <div class="card-actions justify-end mt-4">
         <button
           v-if="!isFirstTask"
-          @click="changeTask('previous')"
+          @click="navigateTask('previous', () => {})"
           class="btn btn-outline mr-2"
         >
           &lt; Previous
@@ -434,18 +431,10 @@ const handleKeydown = (event) => {
           {{ isCurrentTaskSubmitted ? 'Submitted' : (isLoggedIn ? 'Submit' : 'Login to Submit') }}
         </button>
         <button
-          v-if="!isLastTask"
-          @click="changeTask('next')"
+          @click="navigateTask('next', () => $emit('load-new-batch'))"
           class="btn btn-outline btn-secondary"
         >
-          Next &gt;
-        </button>
-        <button
-          v-else
-          @click="$emit('load-new-batch')"
-          class="btn btn-outline btn-secondary"
-        >
-          New Batch &gt;
+          {{ isLastTask ? 'New Batch' : 'Next' }} &gt;
         </button>
       </div>
     </div>
