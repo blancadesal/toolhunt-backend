@@ -1,6 +1,8 @@
 <script setup>
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
+import { useToolhuntApi } from '~/composables/useToolhuntApi';
+import { useAuth } from '~/composables/useAuth';
 
 // Props and emits
 const props = defineProps({
@@ -12,6 +14,7 @@ const emit = defineEmits(['load-new-batch']);
 
 // Composables
 const { isLoggedIn, fetchUserData, authState } = useAuth();
+const { submitTask } = useToolhuntApi();
 
 const tasksRef = computed(() => props.tasks);
 const {
@@ -215,7 +218,11 @@ const getPlaceholder = (fieldName) => {
     case 'bugtracker_url':
       return 'Enter bug tracker URL';
     case 'translate_url':
-      return 'Enter translation interface URL';
+			return 'Enter translation interface URL';
+		case 'icon':
+			return 'Enter icon URL (e.g., https://commons.wikimedia.org/wiki/File:some_tool_logo_mini.svg)';
+		case 'wikidata_qid':
+			return 'Enter wikidata ID (e.g., Q43649390)';
     default:
       return `Enter ${fieldName}`;
   }
@@ -269,33 +276,37 @@ const submitContribution = async () => {
   validationError.value = '';
   submittedTasks.value.add(currentTask.value.id);
 
-  // Create submission object
   const submission = {
-    tool: currentTask.value.tool.name,
-    tool_title: currentTask.value.tool.title,
-    field: currentTask.value.field,
-    user: authState.value.user.id,
+    tool: {
+      name: currentTask.value.tool.name,
+      title: currentTask.value.tool.title,
+    },
+    user: {
+      id: authState.value.user.id,
+    },
     completed_date: new Date().toISOString(),
     value: currentUserInput.value
   };
 
-  // Log the submission object
-  console.log('Submission object:', submission);
+  console.log('Submission data:', submission);  // Add this line
 
-  // Here you would typically make an API call to submit the contribution
-  // For example:
-  // try {
-  //   await api.submitContribution(submission);
-  //   console.log('Contribution submitted successfully');
-  // } catch (error) {
-  //   console.error('Error submitting contribution:', error);
-  //   // Handle error (e.g., show error message to user)
-  // }
+  try {
+    await submitTask(currentTask.value.id, submission);
+    console.log('Contribution submitted successfully');
+    // You might want to show a success message to the user here
+  } catch (error) {
+    console.error('Error submitting contribution:', error);
+    validationError.value = 'Failed to submit contribution. Please try again.';
+    submittedTasks.value.delete(currentTask.value.id);
+    isSubmitting.value = false;
+    return;
+  }
 
   // Reset isSubmitting after a short delay
   setTimeout(() => {
     isSubmitting.value = false;
-    navigateTask('next');
+    // Move to the next task after successful submission
+    navigateTask('next', () => emit('load-new-batch'));
   }, 100);
 };
 
@@ -349,7 +360,15 @@ defineExpose({ resetSubmittedTasks });
 
       <!-- Tool Info Section -->
       <div class="bg-secondary bg-opacity-10 p-4 mb-4 shadow-md rounded-lg">
-        <h2 class="card-title text-primary-content text-2xl mb-4">{{ currentTask.tool.title }}</h2>
+        <h2 class="card-title text-primary-content text-2xl mb-4">
+          <a
+            :href="`https://toolhub.wikimedia.org/tools/${currentTask.tool.name}`"
+            target="_blank"
+            class="transition-opacity duration-200 hover:opacity-70"
+          >
+            {{ currentTask.tool.title }}
+          </a>
+        </h2>
         <p class="mb-4 text-primary-content">{{ currentTask.tool.description }}</p>
         <div class="flex items-center mb-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
