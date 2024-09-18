@@ -157,6 +157,18 @@ const taskIndicators = computed(() => {
   }));
 });
 
+const isSubmitDisabled = computed(() => {
+  const hasNoInput = isArrayType.value 
+    ? !currentUserInput.value || currentUserInput.value.length === 0
+    : !currentUserInput.value;
+
+  return !isLoggedIn.value || 
+         isCurrentTaskSubmitted.value || 
+         isTaskChanging.value || 
+         isSubmitting.value || 
+         hasNoInput;
+});
+
 // Methods
 const validateInput = (input) => {
   if (fieldSchema.value) {
@@ -170,13 +182,13 @@ const validateInput = (input) => {
         // Look for format or pattern errors
         const formatError = validate.errors.find(e => e.keyword === 'format');
         const patternError = validate.errors.find(e => e.keyword === 'pattern');
-        
+
         if (formatError) {
           return { isValid: false, error: `Input must match format "${formatError.params.format}"` };
         } else if (patternError) {
           return { isValid: false, error: `Input must match pattern "${patternError.params.pattern}"` };
         }
-        
+
         // If no format or pattern error, return a generic message
         return { isValid: false, error: 'Invalid input' };
       }
@@ -216,21 +228,6 @@ const getInputType = (fieldName) => {
       return 'checkbox';
     default:
       return 'text';
-  }
-};
-
-const addArrayItem = () => {
-  if (isArrayType.value) {
-    const newInput = Array.isArray(currentUserInput.value) ? [...currentUserInput.value, ''] : [''];
-    currentUserInput.value = newInput;
-  }
-};
-
-const removeArrayItem = (index) => {
-  if (isArrayType.value && Array.isArray(currentUserInput.value)) {
-    const newInput = [...currentUserInput.value];
-    newInput.splice(index, 1);
-    currentUserInput.value = newInput;
   }
 };
 
@@ -282,11 +279,11 @@ const submitContribution = async () => {
   }, 100);
 };
 
-// const resetSubmittedTasks = () => {
-//   submittedTasks.value.clear();
-//   hasAttemptedSubmit.value = false;
-//   taskInputs.value = {};
-// };
+const resetSubmittedTasks = () => {
+  submittedTasks.value.clear();
+  hasAttemptedSubmit.value = false;
+  taskInputs.value = {};
+};
 
 const focusInput = () => {
   nextTick(() => {
@@ -296,8 +293,8 @@ const focusInput = () => {
   });
 };
 
-// // Expose methods
-// defineExpose({ resetSubmittedTasks });
+// Expose methods
+defineExpose({ resetSubmittedTasks });
 </script>
 
 <template>
@@ -317,16 +314,16 @@ const focusInput = () => {
       <!-- Task Progress Indicators -->
       <div class="flex justify-center mb-4 space-x-3">
         <div
-          v-for="(indicator, index) in taskIndicators"
-          :key="indicator.id"
+          v-for="indicator in taskIndicators"
+          :key="indicator.index"
           class="w-6 h-6 rounded-full border-2 border-primary flex items-center justify-center text-sm font-medium transition-all duration-100"
           :class="{
             'bg-primary text-white': indicator.completed,
-            'ring-2 ring-primary ring-opacity-50': index === currentTaskIndex,
+            'ring-2 ring-primary ring-opacity-50': indicator.index === currentTaskIndex,
             'text-primary': !indicator.completed
           }"
         >
-          {{ index + 1 }}
+          {{ indicator.index + 1 }}
         </div>
       </div>
 
@@ -379,23 +376,6 @@ const focusInput = () => {
             </div>
           </div>
 
-          <!-- Array input for non-predefined options -->
-          <div v-else-if="isArrayType" class="space-y-2">
-            <div v-for="(item, index) in currentUserInput" :key="index" class="flex items-center space-x-2">
-              <input
-                v-model="currentUserInput[index]"
-                :ref="index === 0 ? inputRef : undefined"
-                @keydown="handleEnterKey"
-                type="text"
-                :placeholder="`Enter item ${index + 1}`"
-                class="input input-bordered flex-grow"
-                :disabled="isCurrentTaskSubmitted"
-              />
-              <button @click="removeArrayItem(index)" class="btn btn-ghost btn-sm" :disabled="isCurrentTaskSubmitted">X</button>
-            </div>
-            <button @click="addArrayItem" class="btn btn-ghost btn-sm" :disabled="isCurrentTaskSubmitted">+ Add Item</button>
-          </div>
-
           <!-- Single input for non-array types -->
           <input
             v-else
@@ -426,7 +406,7 @@ const focusInput = () => {
         <button
           @click="submitContribution"
           class="btn btn-primary mr-2"
-          :disabled="!isLoggedIn || isCurrentTaskSubmitted || isTaskChanging || isSubmitting || (isArrayType && Array.isArray(currentUserInput) && currentUserInput.length === 0)"
+          :disabled="isSubmitDisabled"
         >
           {{ isCurrentTaskSubmitted ? 'Submitted' : (isLoggedIn ? 'Submit' : 'Login to Submit') }}
         </button>
