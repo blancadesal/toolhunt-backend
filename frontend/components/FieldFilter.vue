@@ -64,7 +64,7 @@ watch(selectedFields, (newValue) => {
       <button
         v-if="selectedFields.length > 0"
         @click="clearFilters"
-        class="btn btn-sm btn-outline btn-primary"
+        class="btn btn-sm btn-outline btn-accent"
       >
         Clear Filters ({{ selectedFields.length }})
       </button>
