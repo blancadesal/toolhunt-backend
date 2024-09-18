@@ -11,7 +11,7 @@ const props = defineProps({
 const emit = defineEmits(['load-new-batch']);
 
 // Composables
-const { isLoggedIn } = useAuth();
+const { isLoggedIn, fetchUserData, authState } = useAuth();
 
 const tasksRef = computed(() => props.tasks);
 const {
@@ -55,12 +55,17 @@ watch(() => currentTaskIndex.value, () => {
 });
 
 // Lifecycle hooks
-onMounted(() => {
+onMounted(async () => {
   if (currentTask.value) {
     taskInputs.value[currentTask.value.id] = isArrayType.value ? [] : '';
   }
   window.addEventListener('keydown', handleKeyNavigation);
   focusInput();
+
+  // Fetch user data if logged in
+  if (isLoggedIn.value) {
+    await fetchUserData();
+  }
 });
 
 onBeforeUnmount(() => {
@@ -249,9 +254,10 @@ const submitContribution = async () => {
   console.log('isLoggedIn:', isLoggedIn.value);
   console.log('currentTask:', currentTask.value);
   console.log('currentUserInput:', currentUserInput.value);
+  console.log('User:', authState.value.user);
 
-  if (!isLoggedIn.value || !currentTask.value) {
-    console.log('Returning early: not logged in or no current task');
+  if (!isLoggedIn.value || !currentTask.value || !authState.value.user) {
+    console.log('Returning early: not logged in, no current task, or no user data');
     isSubmitting.value = false;
     return;
   }
