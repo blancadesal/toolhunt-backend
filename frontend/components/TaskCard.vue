@@ -1,11 +1,17 @@
 <script setup>
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { debounce } from 'lodash-es';
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 
 const props = defineProps({
   tasks: Array,
   annotationsSchema: Object,
 });
 
-const emit = defineEmits(['load-new-batch']);
+const emit = defineEmits([
+  'load-new-batch',
+]);
 
 const { isLoggedIn } = useAuth();
 
@@ -19,10 +25,58 @@ const {
 } = useTaskNavigation(tasksRef);
 
 const inputRef = ref(null);
+const submittedTasks = ref(new Set());
 const isSubmitting = ref(false);
 const hasAttemptedSubmit = ref(false);
-const submittedTasks = ref(new Set());
+const taskInputs = ref({});
+const validationError = ref('');
 const isTaskChanging = ref(false);
+
+const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
+addFormats(ajv);
+
+// Add all schemas from annotationsSchema to Ajv
+watch(() => props.annotationsSchema, (newValue) => {
+  if (newValue && newValue.schemas) {
+    Object.entries(newValue.schemas).forEach(([key, schema]) => {
+      ajv.addSchema(schema, `#/schemas/${key}`);
+    });
+  }
+}, { immediate: true });
+
+
+const isCurrentTaskSubmitted = computed(() => {
+  return currentTask.value && submittedTasks.value.has(currentTask.value.id);
+});
+
+const fieldSchema = computed(() => {
+  if (props.annotationsSchema && currentTask.value && currentTask.value.field) {
+    const fieldName = currentTask.value.field;
+    const annotationsProperties = props.annotationsSchema.schemas.Annotations.properties;
+    if (annotationsProperties && annotationsProperties[fieldName]) {
+      let fieldSchemaValue = {
+        ...annotationsProperties[fieldName],
+        $id: `#/fieldSchema/${fieldName}`
+      };
+
+      if (fieldSchemaValue.nullable === true) {
+        fieldSchemaValue = {
+          oneOf: [
+            { type: 'null' },
+            { ...fieldSchemaValue, nullable: undefined }
+          ]
+        };
+      }
+
+      if (fieldName === 'repository') {
+        fieldSchemaValue.format = 'uri';
+      }
+
+      return fieldSchemaValue;
+    }
+  }
+  return null;
+});
 
 const isArrayType = computed(() => {
   if (!props.annotationsSchema || !currentTask.value || !currentTask.value.field) {
@@ -33,26 +87,38 @@ const isArrayType = computed(() => {
   return fieldProperties[fieldName]?.type === 'array';
 });
 
-const fieldSchema = computed(() => {
-  if (!props.annotationsSchema || !currentTask.value || !currentTask.value.field) {
-    return null;
+const validateInput = (input) => {
+  if (fieldSchema.value) {
+    try {
+      const validate = ajv.compile(fieldSchema.value);
+      if (isArrayType.value && Array.isArray(input) && input.length === 0) {
+        return false;
+      }
+      return validate(input);
+    } catch (e) {
+      console.error('Error compiling validator for field:', e);
+      return true; // If we can't validate, assume it's valid
+    }
   }
-  const fieldName = currentTask.value.field;
-  return props.annotationsSchema.schemas.Annotations.properties[fieldName] || null;
-});
+  return true;
+};
 
-const {
-  taskInputs,
-  currentUserInput,
-  addArrayItem,
-  removeArrayItem,
-  resetTaskInputs,
-  validateInput,
-  validationError
-} = useInputHandling(currentTask, isArrayType, fieldSchema, computed(() => props.annotationsSchema));
-
-const isCurrentTaskSubmitted = computed(() => {
-  return currentTask.value && submittedTasks.value.has(currentTask.value.id);
+const currentUserInput = computed({
+  get: () => {
+    if (currentTask.value) {
+      const input = taskInputs.value[currentTask.value.id];
+      if (isArrayType.value) {
+        return Array.isArray(input) ? input : [];
+      }
+      return input ?? '';
+    }
+    return '';
+  },
+  set: (value) => {
+    if (currentTask.value) {
+      taskInputs.value[currentTask.value.id] = value;
+    }
+  }
 });
 
 const fieldDescription = computed(() => {
@@ -75,17 +141,14 @@ const fieldInputOptions = computed(() => {
 
   let options = [];
 
-  if (fieldName === 'icon_type') {
-    options = props.annotationsSchema.schemas.IconTypeEnum?.enum || [];
-  } else if (fieldSchema?.type === 'array' && fieldSchema.items?.$ref) {
+  if (fieldSchema?.type === 'array' && fieldSchema.items?.$ref) {
     const enumName = fieldSchema.items.$ref.split('/').pop();
     const enumSchema = props.annotationsSchema.schemas[enumName];
     options = enumSchema?.enum || [];
-  } else if (fieldSchema?.allOf) {
-    options = fieldSchema.allOf.flatMap(ref => {
-      const enumName = ref.$ref?.split('/').pop();
-      return props.annotationsSchema.schemas[enumName]?.enum || [];
-    });
+  } else if (fieldSchema?.allOf && fieldSchema.allOf[0]?.$ref) {
+    const enumName = fieldSchema.allOf[0].$ref.split('/').pop();
+    const enumSchema = props.annotationsSchema.schemas[enumName];
+    options = enumSchema?.enum || [];
   }
 
   return options.map(option => ({
@@ -94,24 +157,10 @@ const fieldInputOptions = computed(() => {
   }));
 });
 
-const getInputType = (fieldName) => {
-  const fieldSchema = props.annotationsSchema.schemas.Annotations.properties[fieldName];
-  if (fieldSchema?.format === 'uri' || fieldName === 'repository') {
-    return 'url';
-  }
-  switch (fieldName) {
-    case 'deprecated':
-    case 'experimental':
-      return 'checkbox';
-    default:
-      return 'text';
-  }
-};
-
 const getPlaceholder = (fieldName) => {
   switch (fieldName) {
     case 'repository':
-      return 'Enter repository URL';
+      return 'Enter repository URL (e.g., https://github.com/username/repository)';
     case 'api_url':
       return 'Enter API URL';
     case 'bugtracker_url':
@@ -120,6 +169,36 @@ const getPlaceholder = (fieldName) => {
       return 'Enter translation interface URL';
     default:
       return `Enter ${fieldName}`;
+  }
+};
+
+const getInputType = (fieldName) => {
+  switch (fieldName) {
+    case 'repository':
+    case 'api_url':
+    case 'bugtracker_url':
+    case 'translate_url':
+      return 'url';
+    case 'deprecated':
+    case 'experimental':
+      return 'checkbox';
+    default:
+      return 'text';
+  }
+};
+
+const addArrayItem = () => {
+  if (isArrayType.value) {
+    const newInput = Array.isArray(currentUserInput.value) ? [...currentUserInput.value, ''] : [''];
+    currentUserInput.value = newInput;
+  }
+};
+
+const removeArrayItem = (index) => {
+  if (isArrayType.value && Array.isArray(currentUserInput.value)) {
+    const newInput = [...currentUserInput.value];
+    newInput.splice(index, 1);
+    currentUserInput.value = newInput;
   }
 };
 
@@ -137,6 +216,10 @@ const submitContribution = async () => {
 
   isSubmitting.value = true;
   hasAttemptedSubmit.value = true;
+  console.log('submitContribution called');
+  console.log('isLoggedIn:', isLoggedIn.value);
+  console.log('currentTask:', currentTask.value);
+  console.log('currentUserInput:', currentUserInput.value);
 
   if (!isLoggedIn.value || !currentTask.value) {
     console.log('Returning early: not logged in or no current task');
@@ -144,15 +227,18 @@ const submitContribution = async () => {
     return;
   }
 
-  if (!validateInput()) {
-    console.log('Input validation failed:', validationError.value);
+  if (!validateInput(currentUserInput.value)) {
+    console.log('Input validation failed');
+    validationError.value = 'Invalid input';
     isSubmitting.value = false;
     return;
   }
 
+  validationError.value = '';
   submittedTasks.value.add(currentTask.value.id);
 
   // Here you would typically make an API call to submit the contribution
+  // For now, we'll just log it
   console.log('Contribution submitted:', currentUserInput.value);
 
   // Reset isSubmitting after a short delay
@@ -166,8 +252,11 @@ const submitContribution = async () => {
 const resetSubmittedTasks = () => {
   submittedTasks.value.clear();
   hasAttemptedSubmit.value = false;
-  resetTaskInputs();
+  taskInputs.value = {};
 };
+
+// Expose the resetSubmittedTasks method to the parent component
+defineExpose({ resetSubmittedTasks });
 
 const focusInput = () => {
   nextTick(() => {
@@ -177,7 +266,7 @@ const focusInput = () => {
   });
 };
 
-watch(currentTaskIndex, () => {
+watch(() => currentTaskIndex.value, () => {
   if (currentTask.value && !(currentTask.value.id in taskInputs.value)) {
     taskInputs.value[currentTask.value.id] = isArrayType.value ? [] : '';
   }
@@ -212,9 +301,6 @@ const handleKeydown = (event) => {
     changeTask('next');
   }
 };
-
-// Expose the resetSubmittedTasks method to the parent component
-defineExpose({ resetSubmittedTasks });
 </script>
 
 <template>
@@ -235,7 +321,7 @@ defineExpose({ resetSubmittedTasks });
       <div class="flex justify-center mb-4 space-x-3">
         <div
           v-for="(indicator, index) in taskIndicators"
-          :key="indicator.index"
+          :key="indicator.id"
           class="w-6 h-6 rounded-full border-2 border-primary flex items-center justify-center text-sm font-medium transition-all duration-100"
           :class="{
             'bg-primary text-white': indicator.completed,
@@ -327,7 +413,7 @@ defineExpose({ resetSubmittedTasks });
 
           <!-- Validation Error -->
           <div v-if="hasAttemptedSubmit && validationError" class="text-error text-sm mt-1">
-            Invalid input.
+            {{ validationError }}
           </div>
         </div>
       </div>

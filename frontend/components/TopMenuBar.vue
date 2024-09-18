@@ -6,7 +6,7 @@ const menuItems = [
   { to: '/leaderboard', label: 'Leaderboard' },
   { to: '/profile', label: 'Profile' },
 	{ to: '/about', label: 'About' },
-	{ to: '/search', label: 'Search' },
+	// { to: '/search', label: 'Search' },
 ]
 
 const handleAuthAction = async () => {
