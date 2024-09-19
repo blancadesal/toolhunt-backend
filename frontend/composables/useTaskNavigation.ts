@@ -36,6 +36,16 @@ export function useTaskNavigation(tasks: Ref<any[]>) {
     }
   };
 
+  const jumpToTask = (index: number) => {
+    if (index >= 0 && index < tasks.value.length) {
+      isTaskChanging.value = true;
+      setTimeout(() => {
+        currentTaskIndex.value = index;
+        isTaskChanging.value = false;
+      }, 150);
+    }
+  };
+
   return {
     currentTaskIndex,
     currentTask,
@@ -44,6 +54,7 @@ export function useTaskNavigation(tasks: Ref<any[]>) {
     isTaskChanging,
     changeTask,
     navigateTask,
-    handleKeyNavigation
+    handleKeyNavigation,
+    jumpToTask
   };
 }

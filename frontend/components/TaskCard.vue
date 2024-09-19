@@ -3,6 +3,7 @@ import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { useToolhuntApi } from '~/composables/useToolhuntApi';
 import { useAuth } from '~/composables/useAuth';
+import { useTaskNavigation } from '~/composables/useTaskNavigation';
 
 // Props and emits
 const props = defineProps({
@@ -24,7 +25,8 @@ const {
   isLastTask,
   isTaskChanging,
   navigateTask,
-  handleKeyNavigation
+  handleKeyNavigation,
+  jumpToTask
 } = useTaskNavigation(tasksRef);
 
 // Refs
@@ -347,12 +349,13 @@ defineExpose({ resetSubmittedTasks });
         <div
           v-for="indicator in taskIndicators"
           :key="indicator.index"
-          class="w-6 h-6 rounded-full border-2 border-primary flex items-center justify-center text-sm font-medium transition-all duration-100"
+          class="w-6 h-6 rounded-full border-2 border-primary flex items-center justify-center text-sm font-medium transition-all duration-100 cursor-pointer"
           :class="{
             'bg-primary text-white': indicator.completed,
             'ring-2 ring-primary ring-opacity-50': indicator.index === currentTaskIndex,
             'text-primary': !indicator.completed
           }"
+          @click="jumpToTask(indicator.index)"
         >
           {{ indicator.index + 1 }}
         </div>
