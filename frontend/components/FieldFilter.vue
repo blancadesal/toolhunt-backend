@@ -44,7 +44,7 @@ const clearFilter = () => {
 <template>
   <div class="field-filter w-full mb-4">
     <div class="flex gap-2 items-start">
-      <button @click="toggleCard" class="btn btn-outline btn-secondary w-full">
+      <button @click="toggleCard" class="btn btn-accent w-full">
         {{ activeFields.length > 0 ? `Filter by Task (${activeFields.length})` : 'Select Fields' }}
       </button>
     </div>
@@ -53,7 +53,7 @@ const clearFilter = () => {
     <div v-if="isCardOpen" class="card bg-base-100 shadow-xl mt-4">
       <div class="card-body">
         <h2 class="card-title">Select Fields</h2>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <div class="grid grisd-cols-2 md:grid-cols-3 gap-2">
           <label v-for="field in formattedFieldNames" :key="field.value" class="cursor-pointer flex items-center">
             <input
               type="checkbox"

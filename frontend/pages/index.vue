@@ -94,9 +94,9 @@ onMounted(async () => {
       <!-- Active Filters Display -->
       <div v-if="activeFilters.fields.length > 0 || activeFilters.tools.length > 0" class="mt-6">
         <h2 class="text-lg font-semibold mb-2">Active Filters:</h2>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 mb-2">
           <div v-for="field in activeFilters.fields" :key="field" class="badge badge-lg badge-accent">
-            Field: {{ field }}
+            Task: {{ toHumanReadable(field) }}
             <button @click="removeActiveFilter('fields', field)" class="ml-2 text-xs">✕</button>
           </div>
           <div v-for="tool in activeFilters.tools" :key="tool" class="badge badge-lg badge-primary">

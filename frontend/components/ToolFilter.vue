@@ -77,7 +77,7 @@ const toggleCard = () => {
 <template>
   <div class="tool-filter w-full mb-4">
     <div class="flex gap-2 items-start">
-      <button @click="toggleCard" class="btn btn-outline btn-secondary w-full">
+      <button @click="toggleCard" class="btn btn-primary w-full">
         {{ activeTools.length > 0 ? `Filter by Tool (${activeTools.length})` : 'Select Tools' }}
       </button>
     </div>
