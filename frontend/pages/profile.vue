@@ -57,7 +57,7 @@ onMounted(async () => {
         <span class="loading loading-spinner loading-lg"></span>
       </div>
       <div v-else-if="isLoggedIn">
-        <h2 class="text-3xl font-bold mb-8 text-center text-accent">Welcome, {{ authState.user.username }}!</h2>
+        <h2 class="text-3xl font-bold mb-8 text-center">Welcome, <span class="text-accent">{{ authState.user.username }}</span>!</h2>
       </div>
       <div v-else class="alert alert-warning mb-8">
         Please log in to view your profile.

@@ -70,7 +70,7 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col min-h-screen items-center p-4">
-    <h1 class="text-4xl font-bold mt-4 mb-4">Welcome to Toolhunt!</h1>
+    <h1 class="text-4xl font-bold mt-4 mb-8">Welcome to Toolhunt!</h1>
     
     <div class="w-full max-w-7xl mb-8">
       <div class="flex flex-col lg:flex-row gap-6 justify-center">
@@ -93,13 +93,13 @@ onMounted(async () => {
 
       <!-- Active Filters Display -->
       <div v-if="activeFilters.fields.length > 0 || activeFilters.tools.length > 0" class="mt-6">
-        <h2 class="text-lg font-semibold mb-2">Active Filters:</h2>
+        <h2 class="text-lg font-semibold mb-2 text-secondary">Active Filters:</h2>
         <div class="flex flex-wrap gap-2 mb-2">
-          <div v-for="field in activeFilters.fields" :key="field" class="badge badge-lg badge-accent">
+          <div v-for="field in activeFilters.fields" :key="field" class="badge badge-primary badge-lg">
             Task: {{ toHumanReadable(field) }}
             <button @click="removeActiveFilter('fields', field)" class="ml-2 text-xs">✕</button>
           </div>
-          <div v-for="tool in activeFilters.tools" :key="tool" class="badge badge-lg badge-primary">
+          <div v-for="tool in activeFilters.tools" :key="tool" class="badge badge-secondary badge-lg">
             Tool: {{ tool }}
             <button @click="removeActiveFilter('tools', tool)" class="ml-2 text-xs">✕</button>
           </div>

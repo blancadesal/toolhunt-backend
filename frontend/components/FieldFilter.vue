@@ -44,28 +44,28 @@ const clearFilter = () => {
 <template>
   <div class="field-filter w-full mb-4">
     <div class="flex gap-2 items-start">
-      <button @click="toggleCard" class="btn btn-accent w-full">
+      <button @click="toggleCard" class="btn btn-primary w-full">
         {{ activeFields.length > 0 ? `Filter by Task (${activeFields.length})` : 'Select Fields' }}
       </button>
     </div>
 
     <!-- Card for field selection -->
-    <div v-if="isCardOpen" class="card bg-base-100 shadow-xl mt-4">
+    <div v-if="isCardOpen" class="card bg-base-200 shadow-xl mt-4">
       <div class="card-body">
-        <h2 class="card-title">Select Fields</h2>
-        <div class="grid grisd-cols-2 md:grid-cols-3 gap-2">
+        <h2 class="card-title text-secondary">Select Fields</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
           <label v-for="field in formattedFieldNames" :key="field.value" class="cursor-pointer flex items-center">
             <input
               type="checkbox"
               :checked="activeFields.includes(field.value)"
               @change="toggleField(field.value)"
-              class="checkbox checkbox-secondary mr-2"
+              class="checkbox checkbox-primary mr-2"
             />
             <span>{{ field.label }}</span>
           </label>
         </div>
         <div class="card-actions justify-end mt-4">
-          <button @click="clearFilter" class="btn btn-outline" :disabled="activeFields.length === 0">Clear All</button>
+          <button @click="clearFilter" class="btn btn-secondary" :disabled="activeFields.length === 0">Clear All</button>
         </div>
       </div>
     </div>

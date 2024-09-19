@@ -1,5 +1,5 @@
 <template>
-  <div data-theme="emerald" class="bg-gradient-to-b from-base-200 to-base-300">
+  <div data-theme="emerald" class="bg-gradient-to-b from-blue-100 to-base-300">
     <TopMenuBar />
     <NuxtPage />
     <footer class="footer footer-center bg-primary text-primary-content p-2">

@@ -60,10 +60,6 @@ const selectResult = (index) => {
   }
 }
 
-const removeTool = (tool) => {
-  emit('updateFilters', props.activeTools.filter(t => t !== tool))
-}
-
 const clearFilter = () => {
   emit('updateFilters', [])
   isCardOpen.value = false
@@ -83,23 +79,17 @@ const toggleCard = () => {
     </div>
 
     <!-- Card for tool selection -->
-    <div v-if="isCardOpen" class="card bg-base-100 shadow-xl mt-4">
+    <div v-if="isCardOpen" class="card  bg-base-200 shadow-xl mt-4">
       <div class="card-body">
-        <h2 class="card-title">Select Tools</h2>
+        <h2 class="card-title text-secondary">Select Tools</h2>
         <div class="form-control w-full">
-          <div class="flex flex-wrap gap-2 mb-2">
-            <div v-for="tool in activeTools" :key="tool" class="badge badge-lg badge-primary badge-outline flex items-center">
-              {{ tool }}
-              <button @click="removeTool(tool)" class="btn btn-xs btn-ghost btn-circle ml-2">✕</button>
-            </div>
-          </div>
           <div class="flex gap-2 items-start">
             <div class="dropdown flex-grow">
               <input
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search for tools..."
-                class="input input-bordered w-full"
+                class="input input-bordered input-primary w-full"
                 @input="performSearch"
                 @keydown.down.prevent="navigateResults('down')"
                 @keydown.up.prevent="navigateResults('up')"
@@ -107,10 +97,10 @@ const toggleCard = () => {
                 tabindex="0"
               />
               <ul v-if="searchResults.length" 
-                  class="dropdown-content menu p-2 shadow bg-base-200 rounded-box w-full mt-1 max-h-60 overflow-auto z-[1]">
+                  class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full mt-1 max-h-60 overflow-auto z-[1]">
                 <li v-for="(result, index) in searchResults" :key="result.item">
                   <a @click="selectResult(index)"
-                     :class="{ 'active': index === selectedIndex }">
+                     :class="{ 'bg-accent text-accent-content': index === selectedIndex }">
                     {{ result.item }}
                   </a>
                 </li>
@@ -119,7 +109,7 @@ const toggleCard = () => {
           </div>
         </div>
         <div class="card-actions justify-end mt-4">
-          <button @click="clearFilter" class="btn btn-outline" :disabled="activeTools.length === 0">Clear All</button>
+          <button @click="clearFilter" class="btn btn-secondary" :disabled="activeTools.length === 0">Clear All</button>
         </div>
       </div>
     </div>
