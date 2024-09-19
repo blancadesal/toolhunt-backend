@@ -1,20 +1,18 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 
 const props = defineProps({
   fieldNames: {
     type: Array,
     required: true
   },
-  appliedFields: {
+  activeFields: {
     type: Array,
     required: true
   }
 })
 
-const emit = defineEmits(['applyFilter', 'clearFilter'])
-
-const selectedFields = ref([])
+const emit = defineEmits(['updateFilters'])
 
 const formattedFieldNames = computed(() => {
   return props.fieldNames.map(field => ({
@@ -25,22 +23,20 @@ const formattedFieldNames = computed(() => {
 
 const isCardOpen = ref(false)
 
-watch(() => props.appliedFields, (newAppliedFields) => {
-  selectedFields.value = [...newAppliedFields]
-}, { immediate: true })
-
 const toggleCard = () => {
   isCardOpen.value = !isCardOpen.value
 }
 
-const applyFilter = () => {
-  emit('applyFilter', selectedFields.value)
-  isCardOpen.value = false
+const toggleField = (field) => {
+  if (props.activeFields.includes(field)) {
+    emit('updateFilters', props.activeFields.filter(f => f !== field))
+  } else {
+    emit('updateFilters', [...props.activeFields, field])
+  }
 }
 
 const clearFilter = () => {
-  selectedFields.value = []
-  emit('clearFilter')
+  emit('updateFilters', [])
   isCardOpen.value = false
 }
 </script>
@@ -49,7 +45,7 @@ const clearFilter = () => {
   <div class="field-filter w-full mb-4">
     <div class="flex gap-2 items-start">
       <button @click="toggleCard" class="btn btn-outline btn-secondary w-full">
-        {{ selectedFields.length > 0 ? 'Filter by Task' : 'Select Fields' }}
+        {{ activeFields.length > 0 ? `Filter by Task (${activeFields.length})` : 'Select Fields' }}
       </button>
     </div>
 
@@ -61,16 +57,15 @@ const clearFilter = () => {
           <label v-for="field in formattedFieldNames" :key="field.value" class="cursor-pointer flex items-center">
             <input
               type="checkbox"
-              v-model="selectedFields"
-              :value="field.value"
+              :checked="activeFields.includes(field.value)"
+              @change="toggleField(field.value)"
               class="checkbox checkbox-secondary mr-2"
             />
             <span>{{ field.label }}</span>
           </label>
         </div>
         <div class="card-actions justify-end mt-4">
-          <button @click="clearFilter" class="btn btn-outline">Clear</button>
-          <button @click="applyFilter" class="btn btn-primary" :disabled="selectedFields.length === 0">Apply</button>
+          <button @click="clearFilter" class="btn btn-outline" :disabled="activeFields.length === 0">Clear All</button>
         </div>
       </div>
     </div>

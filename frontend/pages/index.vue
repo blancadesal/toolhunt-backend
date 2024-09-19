@@ -10,8 +10,10 @@ const currentTaskIndex = ref(0)
 const isLoading = ref(true)
 const taskCardRef = ref(null)
 
-const appliedFields = ref([])
-const appliedTools = ref([])
+const activeFilters = ref({
+  fields: [],
+  tools: []
+})
 
 // Hardcoded tool data
 const toolData = {
@@ -35,46 +37,25 @@ const loadNewBatch = async () => {
     taskCardRef.value.resetSubmittedTasks()
   }
   
-  let toolFilter = appliedTools.value.length > 0 ? appliedTools.value.map(tool => toolData.titles[tool]).join(',') : null
-  let fieldFilter = appliedFields.value.length > 0 ? appliedFields.value.join(',') : null
+  let toolFilter = activeFilters.value.tools.length > 0 ? activeFilters.value.tools.map(tool => toolData.titles[tool]).join(',') : null
+  let fieldFilter = activeFilters.value.fields.length > 0 ? activeFilters.value.fields.join(',') : null
 
   await fetchTasks(toolFilter, fieldFilter)
   isLoading.value = false
 }
 
-const applyFieldFilter = (selectedFields) => {
-  appliedFields.value = selectedFields
+const updateActiveFilters = (type, filters) => {
+  activeFilters.value[type] = filters
   loadNewBatch()
 }
 
-const applyToolFilter = (selectedTools) => {
-  appliedTools.value = selectedTools
-  loadNewBatch()
-}
-
-const clearFieldFilter = () => {
-  appliedFields.value = []
-  loadNewBatch()
-}
-
-const clearToolFilter = () => {
-  appliedTools.value = []
-  loadNewBatch()
-}
-
-const removeAppliedField = (field) => {
-  appliedFields.value = appliedFields.value.filter(f => f !== field)
-  loadNewBatch()
-}
-
-const removeAppliedTool = (tool) => {
-  appliedTools.value = appliedTools.value.filter(t => t !== tool)
+const removeActiveFilter = (type, filter) => {
+  activeFilters.value[type] = activeFilters.value[type].filter(f => f !== filter)
   loadNewBatch()
 }
 
 const clearAllFilters = () => {
-  appliedFields.value = []
-  appliedTools.value = []
+  activeFilters.value = { fields: [], tools: [] }
   loadNewBatch()
 }
 
@@ -96,33 +77,31 @@ onMounted(async () => {
         <!-- Field Filter -->
         <FieldFilter
           :field-names="fieldNames"
-          :applied-fields="appliedFields"
-          @apply-filter="applyFieldFilter"
-          @clear-filter="clearFieldFilter"
+          :active-fields="activeFilters.fields"
+          @update-filters="filters => updateActiveFilters('fields', filters)"
           class="w-full lg:w-1/2"
         />
 
         <!-- Tool Filter -->
         <ToolFilter
           :tools="toolData.all_titles"
-          :applied-tools="appliedTools"
-          @apply-filter="applyToolFilter"
-          @clear-filter="clearToolFilter"
+          :active-tools="activeFilters.tools"
+          @update-filters="filters => updateActiveFilters('tools', filters)"
           class="w-full lg:w-1/2"
         />
       </div>
 
-      <!-- Applied Filters Display -->
-      <div v-if="appliedFields.length > 0 || appliedTools.length > 0" class="mt-6">
+      <!-- Active Filters Display -->
+      <div v-if="activeFilters.fields.length > 0 || activeFilters.tools.length > 0" class="mt-6">
         <h2 class="text-lg font-semibold mb-2">Active Filters:</h2>
         <div class="flex flex-wrap gap-2">
-          <div v-for="field in appliedFields" :key="field" class="badge badge-lg badge-accent">
+          <div v-for="field in activeFilters.fields" :key="field" class="badge badge-lg badge-accent">
             Field: {{ field }}
-            <button @click="removeAppliedField(field)" class="ml-2 text-xs">✕</button>
+            <button @click="removeActiveFilter('fields', field)" class="ml-2 text-xs">✕</button>
           </div>
-          <div v-for="tool in appliedTools" :key="tool" class="badge badge-lg badge-primary">
+          <div v-for="tool in activeFilters.tools" :key="tool" class="badge badge-lg badge-primary">
             Tool: {{ tool }}
-            <button @click="removeAppliedTool(tool)" class="ml-2 text-xs">✕</button>
+            <button @click="removeActiveFilter('tools', tool)" class="ml-2 text-xs">✕</button>
           </div>
         </div>
         <button @click="clearAllFilters" class="btn btn-outline btn-sm mt-2">Clear All Filters</button>
