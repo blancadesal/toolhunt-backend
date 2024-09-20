@@ -54,6 +54,18 @@ export interface UserContributionsResponse {
   total_contributions: number;
 }
 
+export interface TaskSubmission {
+  tool: {
+    name: string;
+    title: string;
+  };
+  user: {
+    id: string;
+  };
+  completed_date: string;
+  value: string | string[]; // Changed from input to value
+}
+
 const API_BASE_URL = 'http://localhost:8082/api/v1'
 
 class ToolhuntApiClient {
@@ -128,9 +140,9 @@ class ToolhuntApiClient {
   }
 
   // Task-related methods
-  async fetchTasks(toolName: string | null = null, fieldNames: string | null = null): Promise<Task[]> {
+  async fetchTasks(toolNames: string | null = null, fieldNames: string | null = null): Promise<Task[]> {
     const params = new URLSearchParams()
-    if (toolName) params.append('tool_name', toolName)
+    if (toolNames) params.append('tool_names', toolNames)
     if (fieldNames) params.append('field_names', fieldNames)
 
     const response = await this.fetchWithAuth(`/tasks?${params.toString()}`)
@@ -166,6 +178,18 @@ class ToolhuntApiClient {
     }
     const response = await this.fetchWithAuth(url);
     return response.json();
+  }
+
+  async submitTask(taskId: number, submission: TaskSubmission): Promise<void> {
+    const response = await this.fetchWithAuth(`/tasks/${taskId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify(submission),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to submit task');
+    }
   }
 }
 

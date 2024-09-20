@@ -11,11 +11,11 @@ export function useToolhuntApi() {
   const annotationsSchema: Ref<AnnotationsSchema | null> = ref(null)
   const contributions: Ref<ContributionsResponse | null> = ref(null)
   const userContributions: Ref<UserContributionsResponse> = ref({ contributions: [], total_contributions: 0 })
-	const error: Ref<string | null> = ref(null)
+  const error: Ref<string | null> = ref(null)
 
-  const fetchTasks = async (toolName: string | null = null, fieldNames: string | null = null): Promise<void> => {
+  const fetchTasks = async (toolNames: string | null = null, fieldNames: string | null = null): Promise<void> => {
     try {
-      tasks.value = await toolhuntApi.fetchTasks(toolName, fieldNames)
+      tasks.value = await toolhuntApi.fetchTasks(toolNames, fieldNames)
     } catch (error) {
       console.error('Error fetching tasks:', error)
       tasks.value = []
@@ -60,19 +60,14 @@ export function useToolhuntApi() {
     }
   }
 
-  return {
-    tasks,
-    fieldNames,
-    annotationsSchema,
-    fetchTasks,
-    fetchFieldNames,
-    fetchAnnotationsSchema,
-    contributions,
-    fetchContributions,
-    userContributions,
-    fetchUserContributions,
-    error
-  }
+  const submitTask = async (taskId: number, submission: TaskSubmission): Promise<void> => {
+    try {
+      await toolhuntApi.submitTask(taskId, submission);
+    } catch (error) {
+      console.error('Error submitting task:', error);
+      throw error;
+    }
+  };
 
   return {
     tasks,
@@ -84,6 +79,8 @@ export function useToolhuntApi() {
     contributions,
     fetchContributions,
     userContributions,
-    fetchUserContributions
+    fetchUserContributions,
+    error,
+    submitTask
   }
 }
