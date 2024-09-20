@@ -66,7 +66,7 @@ const toggleCard = () => {
 </script>
 
 <template>
-  <div class="tool-filter w-full h-full flex flex-col">
+  <div class="tool-filter w-full flex flex-col">
     <div class="flex gap-2 items-start">
       <button @click="toggleCard" class="btn btn-primary w-full">
         {{ activeTools.length > 0 ? `Filter by Tool (${activeTools.length})` : 'Select Tools' }}
@@ -74,12 +74,12 @@ const toggleCard = () => {
     </div>
 
     <!-- Card for tool selection -->
-    <div v-if="isCardOpen" class="card bg-base-200 shadow-xl mt-4 flex-grow flex flex-col">
-      <div class="card-body flex-grow flex flex-col overflow-hidden">
+    <div v-if="isCardOpen" class="card bg-base-200 shadow-xl mt-4 flex flex-col">
+      <div class="card-body p-4">
         <h2 class="card-title text-secondary mb-4">Select Tools</h2>
-        <div class="form-control w-full flex-grow flex flex-col">
-          <div class="flex gap-2 items-start mb-4">
-            <div class="dropdown flex-grow">
+        <div class="form-control w-full">
+          <div class="flex gap-2 items-start mb-4 relative">
+            <div class="dropdown w-full">
               <input
                 v-model="searchQuery"
                 type="text"
@@ -92,17 +92,18 @@ const toggleCard = () => {
                 tabindex="0"
               />
               <ul v-if="searchResults.length" 
-                  class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full mt-1 max-h-60 overflow-auto z-[1]">
-                <li v-for="(result, index) in searchResults" :key="result.item">
+                  class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full mt-1 absolute z-10">
+                <li v-for="(result, index) in searchResults" :key="result.item" class="w-full">
                   <a @click="selectResult(index)"
-                     :class="{ 'bg-accent text-accent-content': index === selectedIndex }">
+                     :class="{ 'bg-accent text-accent-content': index === selectedIndex }"
+                     class="w-full whitespace-normal">
                     {{ result.item }}
                   </a>
                 </li>
               </ul>
             </div>
           </div>
-          <div class="overflow-y-auto flex-grow">
+          <div>
             <div v-for="tool in activeTools" :key="tool" class="badge badge-secondary badge-lg mr-2 mb-2">
               {{ tool }}
               <button @click="() => emit('updateFilters', activeTools.filter(t => t !== tool))" class="ml-2 text-xs">✕</button>

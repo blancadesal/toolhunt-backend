@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import FieldFilter from '@/components/FieldFilter.vue'
 import ToolFilter from '@/components/ToolFilter.vue'
 import TaskCard from '@/components/TaskCard.vue'
@@ -20,7 +20,24 @@ const toolData = {
   "all_titles": [
     "Testy McFull-Tool",
     "Testy McTest-Tool",
-    "Testy McTool-Type"
+    "Testy McTool-Type",
+    "Wikimedia Commons Upload",
+    "Citation Hunt",
+    "Wikidata Item Creator",
+    "Phabricator Task Manager",
+    "MediaWiki Watchlist",
+    "Wiki Loves Monuments",
+    "Wikisource Proofreader",
+    "Wikipedia Article Wizard",
+    "Wiktionary Word Adder",
+    "Commons Depicts",
+    "WikiProject X",
+    "Wiki Education Dashboard",
+    "Wikimedia Translate",
+    "Wiki Replica Query Service",
+    "Wikimedia Maps",
+    "Wikimedia Outreach Dashboard",
+    "Wiki Meets World"
   ],
   "titles": {
     "Testy McFull-Tool": "testy-mc-full-tool",
@@ -30,18 +47,30 @@ const toolData = {
 }
 
 const loadNewBatch = async () => {
+  // Capture current scroll position
+  const scrollPosition = window.scrollY
+
   isLoading.value = true
-  tasks.value = []
+  // Remove the line that clears tasks to prevent DOM reflow
+  // tasks.value = []
   currentTaskIndex.value = 0
   if (taskCardRef.value) {
     taskCardRef.value.resetSubmittedTasks()
   }
   
-  let toolFilter = activeFilters.value.tools.length > 0 ? activeFilters.value.tools.map(tool => toolData.titles[tool]).join(',') : null
-  let fieldFilter = activeFilters.value.fields.length > 0 ? activeFilters.value.fields.join(',') : null
+  let toolFilter = activeFilters.value.tools.length > 0 
+    ? activeFilters.value.tools.map(tool => toolData.titles[tool]).join(',') 
+    : null
+  let fieldFilter = activeFilters.value.fields.length > 0 
+    ? activeFilters.value.fields.join(',') 
+    : null
 
   await fetchTasks(toolFilter, fieldFilter)
   isLoading.value = false
+
+  // Use nextTick to ensure DOM updates are applied before scrolling
+  await nextTick()
+  window.scrollTo({ top: scrollPosition, behavior: 'smooth' })
 }
 
 const updateActiveFilters = (type, filters) => {
@@ -54,10 +83,7 @@ const removeActiveFilter = (type, filter) => {
   loadNewBatch()
 }
 
-const clearAllFilters = (event) => {
-  // Prevent default button behavior
-  event.preventDefault()
-  
+const clearAllFilters = () => { // Removed event parameter if not needed
   activeFilters.value = { fields: [], tools: [] }
   loadNewBatch()
   
@@ -108,7 +134,7 @@ onMounted(async () => {
       </div>
 
       <!-- Active Filters Display -->
-      <div class="mt-6 p-4 bg-base-200 rounded-lg shadow-md">
+      <div class="mt-6 p-4 bg-base-200 rounded-lg shadow-md min-h-[100px] transition-all duration-300">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-lg font-semibold text-secondary">Active Filters</h2>
           <button
