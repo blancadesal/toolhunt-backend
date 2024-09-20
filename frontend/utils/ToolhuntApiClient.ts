@@ -66,6 +66,11 @@ export interface TaskSubmission {
   value: string | string[]; // Changed from input to value
 }
 
+export interface ToolNamesResponse {
+  all_titles: string[];
+  titles: Record<string, string>;
+}
+
 const API_BASE_URL = 'http://localhost:8082/api/v1'
 
 class ToolhuntApiClient {
@@ -190,6 +195,11 @@ class ToolhuntApiClient {
       const errorData = await response.json();
       throw new Error(errorData.detail || 'Failed to submit task');
     }
+  }
+
+  async fetchToolNames(): Promise<ToolNamesResponse> {
+    const response = await this.fetchWithAuth('/tools/names');
+    return response.json();
   }
 }
 

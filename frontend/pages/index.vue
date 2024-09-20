@@ -4,7 +4,7 @@ import FieldFilter from '@/components/FieldFilter.vue'
 import ToolFilter from '@/components/ToolFilter.vue'
 import TaskCard from '@/components/TaskCard.vue'
 
-const { tasks, fieldNames, annotationsSchema, fetchTasks, fetchFieldNames, fetchAnnotationsSchema } = useToolhuntApi()
+const { tasks, fieldNames, annotationsSchema, toolNames, fetchTasks, fetchFieldNames, fetchAnnotationsSchema, fetchToolNames } = useToolhuntApi()
 
 const currentTaskIndex = ref(0)
 const isLoading = ref(true)
@@ -15,36 +15,7 @@ const activeFilters = ref({
   tools: []
 })
 
-// Hardcoded tool data
-const toolData = {
-  "all_titles": [
-    "Testy McFull-Tool",
-    "Testy McTest-Tool",
-    "Testy McTool-Type",
-    "Wikimedia Commons Upload",
-    "Citation Hunt",
-    "Wikidata Item Creator",
-    "Phabricator Task Manager",
-    "MediaWiki Watchlist",
-    "Wiki Loves Monuments",
-    "Wikisource Proofreader",
-    "Wikipedia Article Wizard",
-    "Wiktionary Word Adder",
-    "Commons Depicts",
-    "WikiProject X",
-    "Wiki Education Dashboard",
-    "Wikimedia Translate",
-    "Wiki Replica Query Service",
-    "Wikimedia Maps",
-    "Wikimedia Outreach Dashboard",
-    "Wiki Meets World"
-  ],
-  "titles": {
-    "Testy McFull-Tool": "testy-mc-full-tool",
-    "Testy McTest-Tool": "testy-mc-test-tool",
-    "Testy McTool-Type": "testy-mc-tool-type"
-  }
-}
+// Remove the hardcoded toolData
 
 const loadNewBatch = async () => {
   // Capture current scroll position
@@ -59,7 +30,7 @@ const loadNewBatch = async () => {
   }
   
   let toolFilter = activeFilters.value.tools.length > 0 
-    ? activeFilters.value.tools.map(tool => toolData.titles[tool]).join(',') 
+    ? activeFilters.value.tools.map(tool => toolNames.value?.titles[tool] || '').join(',') 
     : null
   let fieldFilter = activeFilters.value.fields.length > 0 
     ? activeFilters.value.fields.join(',') 
@@ -99,9 +70,12 @@ const hasActiveFilters = computed(() => {
 
 onMounted(async () => {
   isLoading.value = true
-  await fetchTasks()
-  await fetchFieldNames()
-  await fetchAnnotationsSchema()
+  await Promise.all([
+    fetchTasks(),
+    fetchFieldNames(),
+    fetchAnnotationsSchema(),
+    fetchToolNames()
+  ])
   isLoading.value = false
 })
 </script>
@@ -125,7 +99,7 @@ onMounted(async () => {
         <!-- Tool Filter -->
         <div class="flex flex-col h-full">
           <ToolFilter
-            :tools="toolData.all_titles"
+            :tools="toolNames?.all_titles || []"
             :active-tools="activeFilters.tools"
             @update-filters="filters => updateActiveFilters('tools', filters)"
             class="flex-grow"

@@ -3,7 +3,7 @@
 import { ref } from 'vue'
 import type { Ref } from 'vue'
 import { toolhuntApi } from '~/utils/ToolhuntApiClient'
-import type { Task, AnnotationsSchema, ContributionsResponse, ContributionsParams, UserContributionsResponse } from '~/utils/ToolhuntApiClient'
+import type { Task, AnnotationsSchema, ContributionsResponse, ContributionsParams, UserContributionsResponse, ToolNamesResponse } from '~/utils/ToolhuntApiClient'
 
 export function useToolhuntApi() {
   const tasks: Ref<Task[]> = ref([])
@@ -12,6 +12,7 @@ export function useToolhuntApi() {
   const contributions: Ref<ContributionsResponse | null> = ref(null)
   const userContributions: Ref<UserContributionsResponse> = ref({ contributions: [], total_contributions: 0 })
   const error: Ref<string | null> = ref(null)
+  const toolNames: Ref<ToolNamesResponse | null> = ref(null)
 
   const fetchTasks = async (toolNames: string | null = null, fieldNames: string | null = null): Promise<void> => {
     try {
@@ -60,6 +61,15 @@ export function useToolhuntApi() {
     }
   }
 
+  const fetchToolNames = async (): Promise<void> => {
+    try {
+      toolNames.value = await toolhuntApi.fetchToolNames()
+    } catch (error) {
+      console.error('Error fetching tool names:', error)
+      toolNames.value = null
+    }
+  }
+
   const submitTask = async (taskId: number, submission: TaskSubmission): Promise<void> => {
     try {
       await toolhuntApi.submitTask(taskId, submission);
@@ -81,6 +91,8 @@ export function useToolhuntApi() {
     userContributions,
     fetchUserContributions,
     error,
-    submitTask
+    submitTask,
+    toolNames,
+    fetchToolNames
   }
 }
