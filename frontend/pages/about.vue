@@ -1,50 +1,53 @@
 <template>
   <div class="flex flex-col min-h-screen py-12">
-    <div class="container bg-base-100 shadow-xl p-8 rounded-xl mx-auto max-w-3xl">
-      <h1 class="text-4xl font-bold mb-8 text-center text-secondary">About Toolhunt</h1>
-      <div class="prose prose-lg max-w-none">
-        <div class="mb-8">
-          <h2 class="text-2xl font-semibold mb-4 text-content-primary">Welcome to Toolhunt!</h2>
-          <p>
-            Toolhunt is a community-driven platform designed to help Wikimedia
-            contributors discover, catalog, and improve tools used across
-            Wikimedia projects.
-          </p>
-        </div>
+    <div class="container mx-auto px-4 max-w-5xl">
+      <h1 class="text-3xl font-bold mb-8 text-center">About Toolhunt</h1>
 
-        <div class="mb-8">
-          <h3 class="text-xl font-semibold mb-3">Our Mission</h3>
-          <p>
-            Our mission is to create a comprehensive and up-to-date directory of
-            tools that empower editors, researchers, and developers in the
-            Wikimedia ecosystem.
-          </p>
+      <div class="card bg-base-100 shadow-xl">
+        <div class="bg-secondary text-secondary-content p-4 pl-10 rounded-t-xl">
+          <h2 class="text-2xl font-bold">Welcome to Toolhunt!</h2>
         </div>
+        <div class="card-body pt-6">
+          <div class="prose prose-lg max-w-none text-base-content">
+            <p>
+              Toolhunt is a simple web app for editing Toolhub records. It helps you find tools 
+              with missing information and add that information in a straightforward way.
+            </p>
 
-        <div class="mb-8">
-          <h3 class="text-xl font-semibold mb-3">How It Works</h3>
-          <p>
-            Users can contribute by adding new tools, updating existing
-            information, and validating tool metadata. This collaborative
-            approach ensures that our tool directory remains accurate and
-            valuable for the entire community.
-          </p>
-        </div>
+            <h3 class="text-2xl font-semibold mt-8 mb-4 text-secondary">What's Toolhub?</h3>
+            <p>
+              Toolhub is a catalog of tools used in various Wiki projects. It's meant to help 
+              people find and use tools for their Wiki work. The more complete the information 
+              in Toolhub, the more useful it is for everyone.
+            </p>
 
-        <div class="mb-8">
-          <h3 class="text-xl font-semibold mb-3">Join Us</h3>
-          <p>
-            Whether you're a seasoned Wikimedia contributor or new to the
-            community, your input is valuable. Join us in improving the
-            discoverability and understanding of the vast array of tools
-            available to Wikimedia contributors.
-          </p>
+            <h3 class="text-2xl font-semibold mt-8 mb-4 text-secondary">How Toolhunt Works</h3>
+            <ul class="list-disc pl-6 space-y-2">
+              <li>We show you tools from Toolhub that are missing some information.</li>
+              <li>You can add the missing details if you know them.</li>
+              <li>That's pretty much it!</li>
+            </ul>
+
+            <h3 class="text-2xl font-semibold mt-8 mb-4 text-secondary">Where Toolhunt Came From</h3>
+            <p>
+              Toolhunt started as an Outreachy internship project. It was inspired by Citation Hunt, 
+              which helps people add missing citations on Wikipedia. We thought something similar 
+              could work for Toolhub.
+            </p>
+
+            <h3 class="text-2xl font-semibold mt-8 mb-4 text-secondary">Want to Help?</h3>
+            <p>
+              If you know about Wiki tools and want to improve Toolhub's information, give Toolhunt a try. 
+              Even small contributions can be helpful.
+            </p>
+
+            <div class="mt-8 flex justify-center">
+              <NuxtLink to="/" class="btn btn-accent">Let's go!</NuxtLink>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-// No additional script needed for this basic about page
-</script>
