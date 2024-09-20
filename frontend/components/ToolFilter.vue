@@ -60,18 +60,13 @@ const selectResult = (index) => {
   }
 }
 
-const clearFilter = () => {
-  emit('updateFilters', [])
-  isCardOpen.value = false
-}
-
 const toggleCard = () => {
   isCardOpen.value = !isCardOpen.value
 }
 </script>
 
 <template>
-  <div class="tool-filter w-full mb-4">
+  <div class="tool-filter w-full h-full flex flex-col">
     <div class="flex gap-2 items-start">
       <button @click="toggleCard" class="btn btn-primary w-full">
         {{ activeTools.length > 0 ? `Filter by Tool (${activeTools.length})` : 'Select Tools' }}
@@ -79,11 +74,11 @@ const toggleCard = () => {
     </div>
 
     <!-- Card for tool selection -->
-    <div v-if="isCardOpen" class="card  bg-base-200 shadow-xl mt-4">
-      <div class="card-body">
-        <h2 class="card-title text-secondary">Select Tools</h2>
-        <div class="form-control w-full">
-          <div class="flex gap-2 items-start">
+    <div v-if="isCardOpen" class="card bg-base-200 shadow-xl mt-4 flex-grow flex flex-col">
+      <div class="card-body flex-grow flex flex-col overflow-hidden">
+        <h2 class="card-title text-secondary mb-4">Select Tools</h2>
+        <div class="form-control w-full flex-grow flex flex-col">
+          <div class="flex gap-2 items-start mb-4">
             <div class="dropdown flex-grow">
               <input
                 v-model="searchQuery"
@@ -107,9 +102,12 @@ const toggleCard = () => {
               </ul>
             </div>
           </div>
-        </div>
-        <div class="card-actions justify-end mt-4">
-          <button @click="clearFilter" class="btn btn-secondary" :disabled="activeTools.length === 0">Clear All</button>
+          <div class="overflow-y-auto flex-grow">
+            <div v-for="tool in activeTools" :key="tool" class="badge badge-secondary badge-lg mr-2 mb-2">
+              {{ tool }}
+              <button @click="() => emit('updateFilters', activeTools.filter(t => t !== tool))" class="ml-2 text-xs">✕</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
