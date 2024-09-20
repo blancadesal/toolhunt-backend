@@ -35,6 +35,16 @@ const toggleField = (field) => {
   }
 }
 
+const toggleAllFields = () => {
+  if (props.activeFields.length === props.fieldNames.length) {
+    // If all fields are selected, deselect all
+    emit('updateFilters', [])
+  } else {
+    // Otherwise, select all fields
+    emit('updateFilters', [...props.fieldNames])
+  }
+}
+
 // Utility function (assuming it's defined elsewhere)
 function toHumanReadable(str) {
   // Convert snake_case or other formats to Human Readable
@@ -57,7 +67,16 @@ function toHumanReadable(str) {
     <!-- Card for field selection -->
     <div v-if="isCardOpen" class="card bg-base-200 shadow-xl mt-4 flex flex-col">
       <div class="card-body p-4">
-        <h2 class="card-title text-secondary mb-4">Select Fields</h2>
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="card-title text-secondary">Select Fields</h2>
+          <button
+            @click="toggleAllFields"
+            class="btn btn-sm btn-secondary"
+            type="button"
+          >
+            {{ activeFields.length === fieldNames.length ? 'Clear All' : 'Select All' }}
+          </button>
+        </div>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
           <button
             v-for="field in formattedFieldNames" 
