@@ -8,14 +8,13 @@ const props = defineProps({
   annotationsSchema: Object,
 });
 
-const emit = defineEmits(['load-new-batch', 'update:tasks']);
+const emit = defineEmits(['load-new-batch']);
 
 // Composables
 const { isLoggedIn, fetchUserData, authState } = useAuth();
 const { submitTask } = useToolhuntApi();
 
-const filteredTasks = ref([...props.tasks]);
-
+const tasksRef = computed(() => props.tasks);
 const {
   currentTaskIndex,
   currentTask,
@@ -25,7 +24,7 @@ const {
   navigateTask,
   handleKeyNavigation,
   jumpToTask
-} = useTaskNavigation(filteredTasks);
+} = useTaskNavigation(tasksRef);
 
 // Refs
 const inputRef = ref(null);
@@ -166,7 +165,7 @@ const fieldInputOptions = computed(() => {
 });
 
 const taskIndicators = computed(() => {
-  return filteredTasks.value.map((task, index) => ({
+  return props.tasks.map((task, index) => ({
     index,
     completed: submittedTasks.value.has(task.id)
   }));
@@ -299,7 +298,7 @@ const submitContribution = async () => {
     value: currentUserInput.value
   };
 
-  console.log('Submission data:', submission);
+  console.log('Submission data:', submission);  // Add this line
 
   try {
     await submitTask(currentTask.value.id, submission);
@@ -391,22 +390,6 @@ const submitReport = async () => {
         // You might want to show an error message to the user here
       }
     }
-
-    // Remove the reported task from filteredTasks
-    filteredTasks.value = filteredTasks.value.filter(task => task.tool.name !== toolName);
-
-    // Update the parent component's tasks
-    emit('update:tasks', filteredTasks.value);
-
-    // If all tasks have been removed, emit load-new-batch
-    if (filteredTasks.value.length === 0) {
-      emit('load-new-batch');
-    } else {
-      // Adjust currentTaskIndex if necessary
-      if (currentTaskIndex.value >= filteredTasks.value.length) {
-        currentTaskIndex.value = filteredTasks.value.length - 1;
-      }
-    }
   }
 
   closeReportModal();
@@ -418,13 +401,8 @@ defineExpose({ resetSubmittedTasks });
 
 <template>
   <div>
-    <div v-if="filteredTasks.length === 0" class="text-center my-8">
-      <p class="text-xl">All tasks in this batch have been reported. Loading a new batch...</p>
-      <button @click="$emit('load-new-batch')" class="btn btn-primary mt-4">Load New Batch</button>
-    </div>
-
     <div
-      v-else-if="currentTask"
+      v-if="currentTask"
       :key="currentTask.id"
       class="card bg-base-100 shadow-xl w-full max-w-7xl transition-all duration-150 ease-in-out"
       :class="{ 'opacity-85': isTaskChanging }"
@@ -435,7 +413,7 @@ defineExpose({ resetSubmittedTasks });
           {{ toHumanReadable(currentTask.field) }}
         </p>
       </div>
-      <div class="card-body">
+      <div class="card-body break-words">
         <!-- Task Progress Indicators -->
         <div class="flex justify-center mb-4 space-x-3">
           <div
@@ -470,11 +448,11 @@ defineExpose({ resetSubmittedTasks });
             </button>
           </div>
           <p class="mb-4 text-primary-content">{{ currentTask.tool.description }}</p>
-          <div class="flex items-center mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="flex items-center mb-2 overflow-hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 flex-shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
-            <a :href="currentTask.tool.url" target="_blank" class="text-blue-500 hover:underline">{{ currentTask.tool.url }}</a>
+            <a :href="currentTask.tool.url" target="_blank" class="text-blue-500 hover:underline break-all">{{ currentTask.tool.url }}</a>
           </div>
         </div>
 
@@ -566,10 +544,10 @@ defineExpose({ resetSubmittedTasks });
         <div class="form-control">
           <label class="label cursor-pointer">
             <span class="label-text">Deprecated</span>
-            <input
-              type="checkbox"
-              v-model="reportAttributes.deprecated"
-              class="checkbox checkbox-warning"
+            <input 
+              type="checkbox" 
+              v-model="reportAttributes.deprecated" 
+              class="checkbox checkbox-warning" 
               :disabled="isCurrentToolReported"
               :class="{'checkbox-disabled': isCurrentToolReported}"
             />
@@ -578,10 +556,10 @@ defineExpose({ resetSubmittedTasks });
         <div class="form-control">
           <label class="label cursor-pointer">
             <span class="label-text">Experimental</span>
-            <input
-              type="checkbox"
-              v-model="reportAttributes.experimental"
-              class="checkbox checkbox-warning"
+            <input 
+              type="checkbox" 
+              v-model="reportAttributes.experimental" 
+              class="checkbox checkbox-warning" 
               :disabled="isCurrentToolReported"
               :class="{'checkbox-disabled': isCurrentToolReported}"
             />
@@ -591,9 +569,9 @@ defineExpose({ resetSubmittedTasks });
           <button @click="closeReportModal" class="btn btn-ghost">
             {{ isCurrentToolReported ? 'Close' : 'Cancel' }}
           </button>
-          <button
-            @click="submitReport"
-            class="btn btn-warning"
+          <button 
+            @click="submitReport" 
+            class="btn btn-warning" 
             :disabled="isCurrentToolReported || (!reportAttributes.deprecated && !reportAttributes.experimental)"
           >
             {{ isCurrentToolReported ? 'Reported' : 'Submit Report' }}
