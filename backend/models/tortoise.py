@@ -19,6 +19,8 @@ class Tool(models.Model):
     description = fields.TextField(null=False)
     url = fields.CharField(max_length=2047, null=False)
     last_updated = fields.DatetimeField(auto_now=True)
+    deprecated = fields.BooleanField(default=False)
+    experimental = fields.BooleanField(default=False)
 
     tasks: fields.ReverseRelation["Task"]
     completed_tasks: fields.ReverseRelation["CompletedTask"]
