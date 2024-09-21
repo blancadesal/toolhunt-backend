@@ -41,7 +41,8 @@ const fetchContributions = async () => {
 }
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleString()
+  const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+  return new Date(dateString).toLocaleString(undefined, options)
 }
 
 onMounted(async () => {
@@ -52,7 +53,7 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col min-h-screen py-12">
-    <div class="container mx-auto px-4 max-w-5xl">
+    <div class="container mx-auto px-4 sm:max-w-5xl">
       <div v-if="authState.loading" class="flex justify-center">
         <span class="loading loading-spinner loading-lg"></span>
       </div>
@@ -65,10 +66,10 @@ onMounted(async () => {
 
       <!-- Latest Activity Section -->
       <div v-if="isLoggedIn" class="card bg-base-100 shadow-xl">
-        <div class="bg-secondary text-secondary-content p-4 pl-10 rounded-t-xl">
+        <div class="bg-secondary text-secondary-content p-4 pl-6 sm:pl-10 rounded-t-xl">
           <h2 class="text-2xl font-bold">Latest Activity</h2>
         </div>
-        <div class="card-body pt-4">
+        <div class="card-body pt-4 px-2 sm:px-6">
           <div v-if="loadingContributions" class="flex justify-center">
             <span class="loading loading-spinner loading-lg"></span>
           </div>
@@ -76,61 +77,82 @@ onMounted(async () => {
             {{ contributionsError }}
           </div>
           <div v-else-if="userContributions.contributions.length > 0" class="overflow-x-auto">
-            <table class="table w-full mb-4">
+            <table class="table w-full mb-6">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Tool Name</th>
-                  <th>Annotation</th>
+                  <th class="px-2 sm:px-4">Date</th>
+                  <th class="px-2 sm:px-4">Tool Name</th>
+                  <th class="px-2 sm:px-4">Annotation</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="contribution in paginatedContributions" :key="contribution.date">
-                  <td>{{ formatDate(contribution.date) }}</td>
-                  <td>{{ contribution.tool_title }}</td>
-                  <td>{{ toHumanReadable(contribution.field) }}</td>
+                  <td class="px-2 sm:px-4 text-xs sm:text-sm">{{ formatDate(contribution.date) }}</td>
+                  <td class="px-2 sm:px-4 text-xs sm:text-sm">{{ contribution.tool_title }}</td>
+                  <td class="px-2 sm:px-4 text-xs sm:text-sm">{{ toHumanReadable(contribution.field) }}</td>
                 </tr>
               </tbody>
             </table>
-            <!-- Simplified Pagination controls -->
-            <div class="flex justify-center items-center mt-4 space-x-2">
-              <button 
-                class="btn btn-sm btn-outline btn-secondary" 
-                @click="changePage(1)" 
-                :disabled="currentPage === 1"
-              >
-                First
-              </button>
-              <button 
-                class="btn btn-sm btn-outline btn-secondary" 
-                @click="changePage(currentPage - 1)" 
-                :disabled="currentPage === 1"
-              >
-                &lt;
-              </button>
-              <button 
-                v-for="page in pageRange" 
-                :key="page" 
-                @click="changePage(page)" 
-                class="btn btn-sm btn-outline btn-secondary" 
-                :class="{ 'btn-active': page === currentPage }"
-              >
-                {{ page }}
-              </button>
-              <button 
-                class="btn btn-sm btn-outline btn-secondary" 
-                @click="changePage(currentPage + 1)" 
-                :disabled="currentPage === totalPages"
-              >
-                &gt;
-              </button>
-              <button 
-                class="btn btn-sm btn-outline btn-secondary" 
-                @click="changePage(totalPages)" 
-                :disabled="currentPage === totalPages"
-              >
-                Last
-              </button>
+            <!-- Refined Responsive Pagination controls -->
+            <div class="flex flex-wrap justify-center items-center mt-6 mb-4 space-y-2">
+              <!-- Mobile view -->
+              <div class="flex items-center space-x-3 sm:hidden w-full justify-center">
+                <button 
+                  class="btn btn-xs btn-outline btn-secondary px-2" 
+                  @click="changePage(currentPage - 1)" 
+                  :disabled="currentPage === 1"
+                >
+                  &lt;
+                </button>
+                <span class="text-sm">Page {{ currentPage }} of {{ totalPages }}</span>
+                <button 
+                  class="btn btn-xs btn-outline btn-secondary px-2" 
+                  @click="changePage(currentPage + 1)" 
+                  :disabled="currentPage === totalPages"
+                >
+                  &gt;
+                </button>
+              </div>
+              <!-- Desktop view -->
+              <div class="hidden sm:flex items-center space-x-1">
+                <button 
+                  class="btn btn-xs btn-outline btn-secondary px-2" 
+                  @click="changePage(1)" 
+                  :disabled="currentPage === 1"
+                >
+                  First
+                </button>
+                <button 
+                  class="btn btn-xs btn-outline btn-secondary px-2" 
+                  @click="changePage(currentPage - 1)" 
+                  :disabled="currentPage === 1"
+                >
+                  &lt;
+                </button>
+                <button 
+                  v-for="page in pageRange" 
+                  :key="page" 
+                  @click="changePage(page)" 
+                  class="btn btn-xs btn-outline btn-secondary px-2" 
+                  :class="{ 'btn-active': page === currentPage }"
+                >
+                  {{ page }}
+                </button>
+                <button 
+                  class="btn btn-xs btn-outline btn-secondary px-2" 
+                  @click="changePage(currentPage + 1)" 
+                  :disabled="currentPage === totalPages"
+                >
+                  &gt;
+                </button>
+                <button 
+                  class="btn btn-xs btn-outline btn-secondary px-2" 
+                  @click="changePage(totalPages)" 
+                  :disabled="currentPage === totalPages"
+                >
+                  Last
+                </button>
+              </div>
             </div>
           </div>
           <div v-else class="text-center text-base-content/70">
