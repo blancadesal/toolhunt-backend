@@ -16,7 +16,7 @@ class ToolSchema(BaseModel):
 
 class ToolNamesResponse(BaseModel):
     all_titles: list[str]
-    titles: dict[str, str]
+    titles: dict[str, list[str]]
 
 
 class TaskSchema(BaseModel):
