@@ -11,16 +11,17 @@ import datetime
 import logging
 from dataclasses import dataclass
 
-from tortoise import run_async
+from tortoise import Tortoise, run_async
 from tortoise.exceptions import DoesNotExist, IntegrityError
 
 from backend.config import get_settings
+from backend.db import TORTOISE_ORM
 from backend.models.tortoise import Task, Tool
 from backend.utils import ToolhubClient
 
 settings = get_settings()
 
-tools_endpoint = f"{settings.TOOLHUB_API_BASE_URL}/tools"
+tools_endpoint = f"{settings.TOOLHUB_API_BASE_URL}/tools/"
 toolhub_client = ToolhubClient(tools_endpoint)
 
 logging.basicConfig(
@@ -32,6 +33,10 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger()
+
+async def init():
+    """Initialize the Tortoise ORM with the given configuration."""
+    await Tortoise.init(config=TORTOISE_ORM)
 
 
 # Functions
@@ -75,7 +80,7 @@ def clean_tool_data(tool_data):
             missing_annotations=get_missing_annotations(tool),
             deprecated=is_deprecated(tool),
         )
-        if not t.deprecated:  # and not t.is_completed:
+        if not t.deprecated:
             tools.append(t)
     return tools
 
@@ -161,7 +166,8 @@ async def run_pipeline(test_data=None):
     try:
         # Extract
         logger.info("Starting database update...")
-        tools_raw_data = test_data if test_data else toolhub_client.get_all()
+        await init()
+        tools_raw_data = test_data if test_data else await toolhub_client.get_all()
         logger.info("Raw data received. Cleaning...")
         # Transform
         tools_clean_data = clean_tool_data(tools_raw_data)
@@ -176,7 +182,8 @@ async def run_pipeline(test_data=None):
         logger.info("Tasks updated. Database update completed.")
     except Exception as err:
         logger.error(f"{err.args}")
-
+    finally:
+        await Tortoise.close_connections()
 
 if __name__ == "__main__":
     run_async(run_pipeline())

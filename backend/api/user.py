@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 async def fetch_user_data(access_token):
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            f"{settings.TOOLHUB_API_BASE_URL}user/",
+            f"{settings.TOOLHUB_API_BASE_URL}/user/",
             headers={"Authorization": f"Bearer {access_token}"},
         )
     return response.json()
