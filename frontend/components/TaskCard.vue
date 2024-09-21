@@ -8,13 +8,14 @@ const props = defineProps({
   annotationsSchema: Object,
 });
 
-const emit = defineEmits(['load-new-batch']);
+const emit = defineEmits(['load-new-batch', 'update:tasks']);
 
 // Composables
 const { isLoggedIn, fetchUserData, authState } = useAuth();
 const { submitTask } = useToolhuntApi();
 
-const tasksRef = computed(() => props.tasks);
+const filteredTasks = ref([...props.tasks]);
+
 const {
   currentTaskIndex,
   currentTask,
@@ -24,7 +25,7 @@ const {
   navigateTask,
   handleKeyNavigation,
   jumpToTask
-} = useTaskNavigation(tasksRef);
+} = useTaskNavigation(filteredTasks);
 
 // Refs
 const inputRef = ref(null);
@@ -38,7 +39,7 @@ const reportAttributes = ref({
   deprecated: false,
   experimental: false,
 });
-const reportedToolAttributes = ref({}); // Store reported attributes for each tool
+const reportedToolAttributes = ref({});
 const modalRef = ref(null);
 
 // Ajv setup
@@ -165,7 +166,7 @@ const fieldInputOptions = computed(() => {
 });
 
 const taskIndicators = computed(() => {
-  return props.tasks.map((task, index) => ({
+  return filteredTasks.value.map((task, index) => ({
     index,
     completed: submittedTasks.value.has(task.id)
   }));
@@ -228,11 +229,11 @@ const getPlaceholder = (fieldName) => {
     case 'bugtracker_url':
       return 'Enter bug tracker URL';
     case 'translate_url':
-			return 'Enter translation interface URL';
-		case 'icon':
-			return 'Enter icon URL (e.g., https://commons.wikimedia.org/wiki/File:some_tool_logo_mini.svg)';
-		case 'wikidata_qid':
-			return 'Enter wikidata ID (e.g., Q43649390)';
+      return 'Enter translation interface URL';
+    case 'icon':
+      return 'Enter icon URL (e.g., https://commons.wikimedia.org/wiki/File:some_tool_logo_mini.svg)';
+    case 'wikidata_qid':
+      return 'Enter wikidata ID (e.g., Q43649390)';
     default:
       return `Enter ${fieldName}`;
   }
@@ -298,7 +299,7 @@ const submitContribution = async () => {
     value: currentUserInput.value
   };
 
-  console.log('Submission data:', submission);  // Add this line
+  console.log('Submission data:', submission);
 
   try {
     await submitTask(currentTask.value.id, submission);
@@ -390,6 +391,22 @@ const submitReport = async () => {
         // You might want to show an error message to the user here
       }
     }
+
+    // Remove the reported task from filteredTasks
+    filteredTasks.value = filteredTasks.value.filter(task => task.tool.name !== toolName);
+
+    // Update the parent component's tasks
+    emit('update:tasks', filteredTasks.value);
+
+    // If all tasks have been removed, emit load-new-batch
+    if (filteredTasks.value.length === 0) {
+      emit('load-new-batch');
+    } else {
+      // Adjust currentTaskIndex if necessary
+      if (currentTaskIndex.value >= filteredTasks.value.length) {
+        currentTaskIndex.value = filteredTasks.value.length - 1;
+      }
+    }
   }
 
   closeReportModal();
@@ -401,8 +418,13 @@ defineExpose({ resetSubmittedTasks });
 
 <template>
   <div>
+    <div v-if="filteredTasks.length === 0" class="text-center my-8">
+      <p class="text-xl">All tasks in this batch have been reported. Loading a new batch...</p>
+      <button @click="$emit('load-new-batch')" class="btn btn-primary mt-4">Load New Batch</button>
+    </div>
+
     <div
-      v-if="currentTask"
+      v-else-if="currentTask"
       :key="currentTask.id"
       class="card bg-base-100 shadow-xl w-full max-w-7xl transition-all duration-150 ease-in-out"
       :class="{ 'opacity-85': isTaskChanging }"
@@ -439,7 +461,7 @@ defineExpose({ resetSubmittedTasks });
                 :href="`https://toolhub.wikimedia.org/tools/${currentTask.tool.name}`"
                 target="_blank"
                 class="transition-opacity duration-200 hover:opacity-70"
-								>
+              >
                 {{ currentTask.tool.title }}
               </a>
             </h2>
