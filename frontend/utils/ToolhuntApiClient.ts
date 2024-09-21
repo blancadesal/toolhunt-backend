@@ -63,7 +63,8 @@ export interface TaskSubmission {
     id: string;
   };
   completed_date: string;
-  value: string | string[]; // Changed from input to value
+  value: boolean | string | string[]; // Can be boolean for reports, or string/string[] for regular tasks
+  field?: 'deprecated' | 'experimental'; // Optional field for report submissions
 }
 
 export interface ToolNamesResponse {

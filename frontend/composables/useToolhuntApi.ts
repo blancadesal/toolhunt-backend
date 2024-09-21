@@ -3,7 +3,7 @@
 import { ref } from 'vue'
 import type { Ref } from 'vue'
 import { toolhuntApi } from '~/utils/ToolhuntApiClient'
-import type { Task, AnnotationsSchema, ContributionsResponse, ContributionsParams, UserContributionsResponse, ToolNamesResponse } from '~/utils/ToolhuntApiClient'
+import type { Task, AnnotationsSchema, ContributionsResponse, ContributionsParams, UserContributionsResponse, ToolNamesResponse, TaskSubmission } from '~/utils/ToolhuntApiClient'
 
 export function useToolhuntApi() {
   const tasks: Ref<Task[]> = ref([])
@@ -72,9 +72,14 @@ export function useToolhuntApi() {
 
   const submitTask = async (taskId: number, submission: TaskSubmission): Promise<void> => {
     try {
+      console.log('Submitting task with ID:', taskId);
+      console.log('Submission data:', JSON.stringify(submission, null, 2));
       await toolhuntApi.submitTask(taskId, submission);
     } catch (error) {
       console.error('Error submitting task:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+      }
       throw error;
     }
   };

@@ -36,6 +36,13 @@ const isSubmitting = ref(false);
 const hasAttemptedSubmit = ref(false);
 const taskInputs = ref({});
 const validationError = ref('');
+const isReportModalOpen = ref(false);
+const reportAttributes = ref({
+  deprecated: false,
+  experimental: false,
+});
+const reportedToolAttributes = ref({}); // Store reported attributes for each tool
+const modalRef = ref(null);
 
 // Ajv setup
 const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
@@ -177,6 +184,10 @@ const isSubmitDisabled = computed(() => {
          isTaskChanging.value ||
          isSubmitting.value ||
          hasNoInput;
+});
+
+const isCurrentToolReported = computed(() => {
+  return currentTask.value && reportedToolAttributes.value[currentTask.value.tool.name];
 });
 
 // Methods
@@ -326,138 +337,249 @@ const focusInput = () => {
   });
 };
 
+const openReportModal = () => {
+  if (currentTask.value) {
+    const toolName = currentTask.value.tool.name;
+    if (reportedToolAttributes.value[toolName]) {
+      // If the tool has been reported, set the checkboxes to the reported values
+      reportAttributes.value = { ...reportedToolAttributes.value[toolName] };
+    } else {
+      // If the tool hasn't been reported, reset the checkboxes
+      reportAttributes.value = { deprecated: false, experimental: false };
+    }
+  }
+  isReportModalOpen.value = true;
+};
+
+const closeReportModal = () => {
+  isReportModalOpen.value = false;
+};
+
+const handleModalClick = (event) => {
+  if (modalRef.value && !modalRef.value.contains(event.target)) {
+    closeReportModal();
+  }
+};
+
+const submitReport = async () => {
+  if (currentTask.value) {
+    const toolName = currentTask.value.tool.name;
+    const selectedAttributes = Object.entries(reportAttributes.value)
+      .filter(([_, value]) => value)
+      .map(([key, _]) => key);
+
+    reportedToolAttributes.value[toolName] = { ...reportAttributes.value };
+
+    for (const attribute of selectedAttributes) {
+      const submission = {
+        tool: {
+          name: currentTask.value.tool.name,
+          title: currentTask.value.tool.title,
+        },
+        user: {
+          id: authState.value.user.id,
+        },
+        completed_date: new Date().toISOString(),
+        value: true,
+        field: attribute
+      };
+
+      console.log(`Submitting report for ${attribute}:`, submission);
+      try {
+        await submitTask(currentTask.value.id, submission);
+        console.log(`Report for ${attribute} submitted successfully`);
+      } catch (error) {
+        console.error(`Error submitting report for ${attribute}:`, error);
+        // You might want to show an error message to the user here
+      }
+    }
+  }
+
+  closeReportModal();
+};
+
 // Expose methods
 defineExpose({ resetSubmittedTasks });
 </script>
 
 <template>
-  <div
-    v-if="currentTask"
-    :key="currentTask.id"
-    class="card bg-base-100 shadow-xl w-full max-w-7xl transition-all duration-150 ease-in-out"
-    :class="{ 'opacity-85': isTaskChanging }"
-  >
-    <!-- Task Type Banner -->
-    <div class="bg-secondary bg-opacity-90 text-secondary-content p-2 rounded-t-xl">
-      <p class="text-center text-lg">
-        {{ toHumanReadable(currentTask.field) }}
-      </p>
-    </div>
-    <div class="card-body">
-      <!-- Task Progress Indicators -->
-      <div class="flex justify-center mb-4 space-x-3">
-        <div
-          v-for="indicator in taskIndicators"
-          :key="indicator.index"
-          class="w-6 h-6 rounded-full border-2 border-primary flex items-center justify-center text-sm font-medium transition-all duration-100 cursor-pointer"
-          :class="{
-            'bg-primary text-white': indicator.completed,
-            'ring-2 ring-primary ring-opacity-50': indicator.index === currentTaskIndex,
-            'text-primary': !indicator.completed
-          }"
-          @click="jumpToTask(indicator.index)"
-        >
-          {{ indicator.index + 1 }}
-        </div>
+  <div>
+    <div
+      v-if="currentTask"
+      :key="currentTask.id"
+      class="card bg-base-100 shadow-xl w-full max-w-7xl transition-all duration-150 ease-in-out"
+      :class="{ 'opacity-85': isTaskChanging }"
+    >
+      <!-- Task Type Banner -->
+      <div class="bg-secondary bg-opacity-90 text-secondary-content p-2 rounded-t-xl">
+        <p class="text-center text-lg">
+          {{ toHumanReadable(currentTask.field) }}
+        </p>
       </div>
-
-      <!-- Tool Info Section -->
-      <div class="bg-secondary bg-opacity-10 p-4 mb-4 shadow-md rounded-lg">
-        <h2 class="card-title text-primary-content text-2xl mb-4">
-          <a
-            :href="`https://toolhub.wikimedia.org/tools/${currentTask.tool.name}`"
-            target="_blank"
-            class="transition-opacity duration-200 hover:opacity-70"
+      <div class="card-body">
+        <!-- Task Progress Indicators -->
+        <div class="flex justify-center mb-4 space-x-3">
+          <div
+            v-for="indicator in taskIndicators"
+            :key="indicator.index"
+            class="w-6 h-6 rounded-full border-2 border-primary flex items-center justify-center text-sm font-medium transition-all duration-100 cursor-pointer"
+            :class="{
+              'bg-primary text-white': indicator.completed,
+              'ring-2 ring-primary ring-opacity-50': indicator.index === currentTaskIndex,
+              'text-primary': !indicator.completed
+            }"
+            @click="jumpToTask(indicator.index)"
           >
-            {{ currentTask.tool.title }}
-          </a>
-        </h2>
-        <p class="mb-4 text-primary-content">{{ currentTask.tool.description }}</p>
-        <div class="flex items-center mb-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-          </svg>
-          <a :href="currentTask.tool.url" target="_blank" class="text-blue-500 hover:underline">{{ currentTask.tool.url }}</a>
+            {{ indicator.index + 1 }}
+          </div>
         </div>
-      </div>
 
-      <div class="form-control">
-        <div v-if="currentTask && currentTask.field">
-          <label class="label">
-            <span class="label-text text-lg font-semibold">{{ fieldDescription }}</span>
-          </label>
+        <!-- Tool Info Section -->
+        <div class="bg-secondary bg-opacity-10 p-4 mb-4 shadow-md rounded-lg">
+          <div class="flex justify-between items-start mb-4">
+            <h2 class="card-title text-primary-content text-2xl">
+              <a
+                :href="`https://toolhub.wikimedia.org/tools/${currentTask.tool.name}`"
+                target="_blank"
+                class="transition-opacity duration-200 hover:opacity-70"
+								>
+                {{ currentTask.tool.title }}
+              </a>
+            </h2>
+            <button @click="openReportModal" class="btn btn-sm" :class="isCurrentToolReported ? 'btn-success' : 'btn-warning'">
+              {{ isCurrentToolReported ? 'Tool Reported' : 'Report Tool' }}
+            </button>
+          </div>
+          <p class="mb-4 text-primary-content">{{ currentTask.tool.description }}</p>
+          <div class="flex items-center mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            <a :href="currentTask.tool.url" target="_blank" class="text-blue-500 hover:underline">{{ currentTask.tool.url }}</a>
+          </div>
+        </div>
 
-          <!-- Single select dropdown (for tool_type and other non-array types with options) -->
-          <select
-            v-if="!isArrayType && fieldInputOptions.length > 0"
-            ref="inputRef"
-            v-model="currentUserInput"
-            @keydown="handleEnterKey"
-            class="select select-bordered w-full"
-            :disabled="isCurrentTaskSubmitted"
-          >
-            <option disabled value="">Select an option</option>
-            <option v-for="option in fieldInputOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
+        <div class="form-control">
+          <div v-if="currentTask && currentTask.field">
+            <label class="label">
+              <span class="label-text text-lg font-semibold">{{ fieldDescription }}</span>
+            </label>
 
-          <!-- Checkbox group for multi-select (for array types) -->
-          <div v-else-if="isArrayType && fieldInputOptions.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-            <div v-for="option in fieldInputOptions" :key="option.value" class="flex items-center">
-              <input
-                :id="`checkbox-${option.value}`"
-                type="checkbox"
-                :value="option.value"
-                v-model="currentUserInput"
-                @keydown="handleEnterKey"
-                class="checkbox checkbox-primary border-2 mr-2"
-                :disabled="isCurrentTaskSubmitted"
-              />
-              <label :for="`checkbox-${option.value}`" class="cursor-pointer">{{ option.label }}</label>
+            <!-- Single select dropdown (for tool_type and other non-array types with options) -->
+            <select
+              v-if="!isArrayType && fieldInputOptions.length > 0"
+              ref="inputRef"
+              v-model="currentUserInput"
+              @keydown="handleEnterKey"
+              class="select select-bordered w-full"
+              :disabled="isCurrentTaskSubmitted"
+            >
+              <option disabled value="">Select an option</option>
+              <option v-for="option in fieldInputOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+
+            <!-- Checkbox group for multi-select (for array types) -->
+            <div v-else-if="isArrayType && fieldInputOptions.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              <div v-for="option in fieldInputOptions" :key="option.value" class="flex items-center">
+                <input
+                  :id="`checkbox-${option.value}`"
+                  type="checkbox"
+                  :value="option.value"
+                  v-model="currentUserInput"
+                  @keydown="handleEnterKey"
+                  class="checkbox checkbox-primary border-2 mr-2"
+                  :disabled="isCurrentTaskSubmitted"
+                />
+                <label :for="`checkbox-${option.value}`" class="cursor-pointer">{{ option.label }}</label>
+              </div>
+            </div>
+
+            <!-- Single input for non-array types -->
+            <input
+              v-else
+              ref="inputRef"
+              v-model="currentUserInput"
+              :type="getInputType(currentTask.field)"
+              :placeholder="getPlaceholder(currentTask.field)"
+              class="input input-bordered w-full"
+              @keydown="handleEnterKey"
+              :disabled="isCurrentTaskSubmitted"
+            />
+
+            <!-- Validation Error -->
+            <div v-if="hasAttemptedSubmit && validationError" class="text-error text-sm mt-1">
+              {{ validationError }}
             </div>
           </div>
+        </div>
 
-          <!-- Single input for non-array types -->
-          <input
-            v-else
-            ref="inputRef"
-            v-model="currentUserInput"
-            :type="getInputType(currentTask.field)"
-            :placeholder="getPlaceholder(currentTask.field)"
-            class="input input-bordered w-full"
-            @keydown="handleEnterKey"
-            :disabled="isCurrentTaskSubmitted"
-          />
-
-          <!-- Validation Error -->
-          <div v-if="hasAttemptedSubmit && validationError" class="text-error text-sm mt-1">
-            {{ validationError }}
-          </div>
+        <div class="card-actions justify-end mt-4">
+          <button
+            v-if="!isFirstTask"
+            @click="navigateTask('previous', () => {})"
+            class="btn btn-outline mr-2"
+          >
+            &lt; Previous
+          </button>
+          <button
+            @click="submitContribution"
+            class="btn btn-primary mr-2"
+            :disabled="isSubmitDisabled"
+          >
+            {{ isCurrentTaskSubmitted ? 'Submitted' : (isLoggedIn ? 'Submit' : 'Login to Submit') }}
+          </button>
+          <button
+            @click="navigateTask('next', () => $emit('load-new-batch'))"
+            class="btn btn-outline btn-secondary"
+          >
+            {{ isLastTask ? 'New Batch' : 'Next' }} &gt;
+          </button>
         </div>
       </div>
+    </div>
 
-      <div class="card-actions justify-end mt-4">
-        <button
-          v-if="!isFirstTask"
-          @click="navigateTask('previous', () => {})"
-          class="btn btn-outline mr-2"
-        >
-          &lt; Previous
-        </button>
-        <button
-          @click="submitContribution"
-          class="btn btn-primary mr-2"
-          :disabled="isSubmitDisabled"
-        >
-          {{ isCurrentTaskSubmitted ? 'Submitted' : (isLoggedIn ? 'Submit' : 'Login to Submit') }}
-        </button>
-        <button
-          @click="navigateTask('next', () => $emit('load-new-batch'))"
-          class="btn btn-outline btn-secondary"
-        >
-          {{ isLastTask ? 'New Batch' : 'Next' }} &gt;
-        </button>
+    <!-- Report Tool Modal -->
+    <div v-if="isReportModalOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="handleModalClick">
+      <div ref="modalRef" class="modal-box bg-base-100 p-6 rounded-lg shadow-xl w-96">
+        <h3 class="font-bold text-lg mb-4">Report Tool</h3>
+        <div class="form-control">
+          <label class="label cursor-pointer">
+            <span class="label-text">Deprecated</span>
+            <input 
+              type="checkbox" 
+              v-model="reportAttributes.deprecated" 
+              class="checkbox checkbox-warning" 
+              :disabled="isCurrentToolReported"
+              :class="{'checkbox-disabled': isCurrentToolReported}"
+            />
+          </label>
+        </div>
+        <div class="form-control">
+          <label class="label cursor-pointer">
+            <span class="label-text">Experimental</span>
+            <input 
+              type="checkbox" 
+              v-model="reportAttributes.experimental" 
+              class="checkbox checkbox-warning" 
+              :disabled="isCurrentToolReported"
+              :class="{'checkbox-disabled': isCurrentToolReported}"
+            />
+          </label>
+        </div>
+        <div class="modal-action mt-6">
+          <button @click="closeReportModal" class="btn btn-ghost">
+            {{ isCurrentToolReported ? 'Close' : 'Cancel' }}
+          </button>
+          <button 
+            @click="submitReport" 
+            class="btn btn-warning" 
+            :disabled="isCurrentToolReported || (!reportAttributes.deprecated && !reportAttributes.experimental)"
+          >
+            {{ isCurrentToolReported ? 'Reported' : 'Submit Report' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
