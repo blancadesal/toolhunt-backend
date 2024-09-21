@@ -28,12 +28,12 @@ const loadNewBatch = async () => {
   if (taskCardRef.value) {
     taskCardRef.value.resetSubmittedTasks()
   }
-  
-  let toolFilter = activeFilters.value.tools.length > 0 
-    ? activeFilters.value.tools.map(tool => toolNames.value?.titles[tool] || '').join(',') 
+
+  let toolFilter = activeFilters.value.tools.length > 0
+    ? activeFilters.value.tools.map(tool => toolNames.value?.titles[tool] || '').join(',')
     : null
-  let fieldFilter = activeFilters.value.fields.length > 0 
-    ? activeFilters.value.fields.join(',') 
+  let fieldFilter = activeFilters.value.fields.length > 0
+    ? activeFilters.value.fields.join(',')
     : null
 
   await fetchTasks(toolFilter, fieldFilter)
@@ -57,7 +57,7 @@ const removeActiveFilter = (type, filter) => {
 const clearAllFilters = () => { // Removed event parameter if not needed
   activeFilters.value = { fields: [], tools: [] }
   loadNewBatch()
-  
+
   // Smooth scroll to top if needed
   if (window.scrollY > 0) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -83,7 +83,7 @@ onMounted(async () => {
 <template>
   <div class="flex flex-col min-h-screen items-center p-4">
     <h1 class="text-4xl font-bold mt-4 mb-8">Welcome to Toolhunt!</h1>
-    
+
     <div class="w-full max-w-7xl mb-8">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Field Filter -->

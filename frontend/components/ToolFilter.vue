@@ -91,7 +91,7 @@ const toggleCard = () => {
                 @keydown.enter.prevent="selectResult"
                 tabindex="0"
               />
-              <ul v-if="searchResults.length" 
+              <ul v-if="searchResults.length"
                   class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full mt-1 absolute z-10">
                 <li v-for="(result, index) in searchResults" :key="result.item" class="w-full">
                   <a @click="selectResult(index)"

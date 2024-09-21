@@ -13,7 +13,7 @@ const paginatedContributions = computed(() => {
   return userContributions.value.contributions.slice(start, end)
 })
 
-const totalPages = computed(() => 
+const totalPages = computed(() =>
   Math.ceil(userContributions.value.contributions.length / itemsPerPage)
 )
 
@@ -97,17 +97,17 @@ onMounted(async () => {
             <div class="flex flex-wrap justify-center items-center mt-6 mb-4 space-y-2">
               <!-- Mobile view -->
               <div class="flex items-center space-x-3 sm:hidden w-full justify-center">
-                <button 
-                  class="btn btn-xs btn-outline btn-secondary px-2" 
-                  @click="changePage(currentPage - 1)" 
+                <button
+                  class="btn btn-xs btn-outline btn-secondary px-2"
+                  @click="changePage(currentPage - 1)"
                   :disabled="currentPage === 1"
                 >
                   &lt;
                 </button>
                 <span class="text-sm">Page {{ currentPage }} of {{ totalPages }}</span>
-                <button 
-                  class="btn btn-xs btn-outline btn-secondary px-2" 
-                  @click="changePage(currentPage + 1)" 
+                <button
+                  class="btn btn-xs btn-outline btn-secondary px-2"
+                  @click="changePage(currentPage + 1)"
                   :disabled="currentPage === totalPages"
                 >
                   &gt;
@@ -115,39 +115,39 @@ onMounted(async () => {
               </div>
               <!-- Desktop view -->
               <div class="hidden sm:flex items-center space-x-1">
-                <button 
-                  class="btn btn-xs btn-outline btn-secondary px-2" 
-                  @click="changePage(1)" 
+                <button
+                  class="btn btn-xs btn-outline btn-secondary px-2"
+                  @click="changePage(1)"
                   :disabled="currentPage === 1"
                 >
                   First
                 </button>
-                <button 
-                  class="btn btn-xs btn-outline btn-secondary px-2" 
-                  @click="changePage(currentPage - 1)" 
+                <button
+                  class="btn btn-xs btn-outline btn-secondary px-2"
+                  @click="changePage(currentPage - 1)"
                   :disabled="currentPage === 1"
                 >
                   &lt;
                 </button>
-                <button 
-                  v-for="page in pageRange" 
-                  :key="page" 
-                  @click="changePage(page)" 
-                  class="btn btn-xs btn-outline btn-secondary px-2" 
+                <button
+                  v-for="page in pageRange"
+                  :key="page"
+                  @click="changePage(page)"
+                  class="btn btn-xs btn-outline btn-secondary px-2"
                   :class="{ 'btn-active': page === currentPage }"
                 >
                   {{ page }}
                 </button>
-                <button 
-                  class="btn btn-xs btn-outline btn-secondary px-2" 
-                  @click="changePage(currentPage + 1)" 
+                <button
+                  class="btn btn-xs btn-outline btn-secondary px-2"
+                  @click="changePage(currentPage + 1)"
                   :disabled="currentPage === totalPages"
                 >
                   &gt;
                 </button>
-                <button 
-                  class="btn btn-xs btn-outline btn-secondary px-2" 
-                  @click="changePage(totalPages)" 
+                <button
+                  class="btn btn-xs btn-outline btn-secondary px-2"
+                  @click="changePage(totalPages)"
                   :disabled="currentPage === totalPages"
                 >
                   Last

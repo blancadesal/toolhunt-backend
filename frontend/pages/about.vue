@@ -10,16 +10,16 @@
         <div class="card-body pt-6">
           <div class="prose prose-lg max-w-none text-base-content">
             <p>
-              Toolhunt is a simple web app for editing 
-              <a href="https://toolhub.wikimedia.org" target="_blank" rel="noopener noreferrer" class="link">Toolhub</a> 
+              Toolhunt is a simple web app for editing
+              <a href="https://toolhub.wikimedia.org" target="_blank" rel="noopener noreferrer" class="link">Toolhub</a>
               records. It helps you find tools with missing information and add that information in a straightforward way.
             </p>
 
             <h3 class="text-2xl font-semibold mt-8 mb-4 text-secondary">What's Toolhub?</h3>
             <p>
-              <a href="https://toolhub.wikimedia.org" target="_blank" rel="noopener noreferrer" class="link">Toolhub</a> 
-              is a catalog of tools used in various Wiki projects. It's meant to help 
-              people find and use tools for their Wiki work. The more complete the information 
+              <a href="https://toolhub.wikimedia.org" target="_blank" rel="noopener noreferrer" class="link">Toolhub</a>
+              is a catalog of tools used in various Wiki projects. It's meant to help
+              people find and use tools for their Wiki work. The more complete the information
               in Toolhub, the more useful it is for everyone.
             </p>
 
@@ -32,17 +32,17 @@
 
             <h3 class="text-2xl font-semibold mt-8 mb-4 text-secondary">Where Toolhunt Came From</h3>
             <p>
-              Toolhunt started as an 
-              <a href="https://www.outreachy.org/" target="_blank" rel="noopener noreferrer" class="link">Outreachy</a> 
-              internship project. It was inspired by 
-              <a href="https://citationhunt.toolforge.org/" target="_blank" rel="noopener noreferrer" class="link">Citation Hunt</a>, 
-              which helps people add missing citations on Wikipedia. We thought something similar 
+              Toolhunt started as an
+              <a href="https://www.outreachy.org/" target="_blank" rel="noopener noreferrer" class="link">Outreachy</a>
+              internship project. It was inspired by
+              <a href="https://citationhunt.toolforge.org/" target="_blank" rel="noopener noreferrer" class="link">Citation Hunt</a>,
+              which helps people add missing citations on Wikipedia. We thought something similar
               could work for Toolhub.
             </p>
 
             <h3 class="text-2xl font-semibold mt-8 mb-4 text-secondary">Want to Help?</h3>
             <p>
-              If you know about Wiki tools and want to improve Toolhub's information, give Toolhunt a try. 
+              If you know about Wiki tools and want to improve Toolhub's information, give Toolhunt a try.
               Even small contributions can be helpful.
             </p>
 
@@ -55,4 +55,3 @@
     </div>
   </div>
 </template>
-

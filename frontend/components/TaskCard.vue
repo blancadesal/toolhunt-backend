@@ -1,9 +1,6 @@
 <script setup>
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import { useToolhuntApi } from '~/composables/useToolhuntApi';
-import { useAuth } from '~/composables/useAuth';
-import { useTaskNavigation } from '~/composables/useTaskNavigation';
 
 // Props and emits
 const props = defineProps({
@@ -547,10 +544,10 @@ defineExpose({ resetSubmittedTasks });
         <div class="form-control">
           <label class="label cursor-pointer">
             <span class="label-text">Deprecated</span>
-            <input 
-              type="checkbox" 
-              v-model="reportAttributes.deprecated" 
-              class="checkbox checkbox-warning" 
+            <input
+              type="checkbox"
+              v-model="reportAttributes.deprecated"
+              class="checkbox checkbox-warning"
               :disabled="isCurrentToolReported"
               :class="{'checkbox-disabled': isCurrentToolReported}"
             />
@@ -559,10 +556,10 @@ defineExpose({ resetSubmittedTasks });
         <div class="form-control">
           <label class="label cursor-pointer">
             <span class="label-text">Experimental</span>
-            <input 
-              type="checkbox" 
-              v-model="reportAttributes.experimental" 
-              class="checkbox checkbox-warning" 
+            <input
+              type="checkbox"
+              v-model="reportAttributes.experimental"
+              class="checkbox checkbox-warning"
               :disabled="isCurrentToolReported"
               :class="{'checkbox-disabled': isCurrentToolReported}"
             />
@@ -572,9 +569,9 @@ defineExpose({ resetSubmittedTasks });
           <button @click="closeReportModal" class="btn btn-ghost">
             {{ isCurrentToolReported ? 'Close' : 'Cancel' }}
           </button>
-          <button 
-            @click="submitReport" 
-            class="btn btn-warning" 
+          <button
+            @click="submitReport"
+            class="btn btn-warning"
             :disabled="isCurrentToolReported || (!reportAttributes.deprecated && !reportAttributes.experimental)"
           >
             {{ isCurrentToolReported ? 'Reported' : 'Submit Report' }}

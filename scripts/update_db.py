@@ -34,6 +34,7 @@ logging.basicConfig(
 
 logger = logging.getLogger()
 
+
 async def init():
     """Initialize the Tortoise ORM with the given configuration."""
     await Tortoise.init(config=TORTOISE_ORM)
@@ -184,6 +185,7 @@ async def run_pipeline(test_data=None):
         logger.error(f"{err.args}")
     finally:
         await Tortoise.close_connections()
+
 
 if __name__ == "__main__":
     run_async(run_pipeline())

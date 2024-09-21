@@ -79,7 +79,7 @@ function toHumanReadable(str) {
         </div>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
           <button
-            v-for="field in formattedFieldNames" 
+            v-for="field in formattedFieldNames"
             :key="field.value"
             @click="toggleField(field.value)"
             type="button"
