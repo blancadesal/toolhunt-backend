@@ -34,12 +34,7 @@ const hasAttemptedSubmit = ref(false);
 const taskInputs = ref({});
 const validationError = ref('');
 const isReportModalOpen = ref(false);
-const reportAttributes = ref({
-  deprecated: false,
-  experimental: false,
-});
 const reportedToolAttributes = ref({});
-const modalRef = ref(null);
 
 // Ajv setup
 const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
@@ -184,7 +179,7 @@ const isSubmitDisabled = computed(() => {
 });
 
 const isCurrentToolReported = computed(() => {
-  return currentTask.value && reportedToolAttributes.value[currentTask.value.tool.name];
+  return !!(currentTask.value && reportedToolAttributes.value[currentTask.value.tool.name]);
 });
 
 // Methods
@@ -298,7 +293,7 @@ const submitContribution = async () => {
     value: currentUserInput.value
   };
 
-  console.log('Submission data:', submission);  // Add this line
+  console.log('Submission data:', submission);
 
   try {
     await submitTask(currentTask.value.id, submission);
@@ -335,37 +330,17 @@ const focusInput = () => {
 };
 
 const openReportModal = () => {
-  if (currentTask.value) {
-    const toolName = currentTask.value.tool.name;
-    if (reportedToolAttributes.value[toolName]) {
-      // If the tool has been reported, set the checkboxes to the reported values
-      reportAttributes.value = { ...reportedToolAttributes.value[toolName] };
-    } else {
-      // If the tool hasn't been reported, reset the checkboxes
-      reportAttributes.value = { deprecated: false, experimental: false };
-    }
-  }
   isReportModalOpen.value = true;
 };
 
-const closeReportModal = () => {
-  isReportModalOpen.value = false;
-};
-
-const handleModalClick = (event) => {
-  if (modalRef.value && !modalRef.value.contains(event.target)) {
-    closeReportModal();
-  }
-};
-
-const submitReport = async () => {
+const submitReport = async (attributes) => {
   if (currentTask.value) {
     const toolName = currentTask.value.tool.name;
-    const selectedAttributes = Object.entries(reportAttributes.value)
+    const selectedAttributes = Object.entries(attributes)
       .filter(([_, value]) => value)
       .map(([key, _]) => key);
 
-    reportedToolAttributes.value[toolName] = { ...reportAttributes.value };
+    reportedToolAttributes.value[toolName] = { ...attributes };
 
     for (const attribute of selectedAttributes) {
       const submission = {
@@ -392,7 +367,7 @@ const submitReport = async () => {
     }
   }
 
-  closeReportModal();
+  isReportModalOpen.value = false;
 };
 
 // Expose methods
@@ -538,46 +513,13 @@ defineExpose({ resetSubmittedTasks });
     </div>
 
     <!-- Report Tool Modal -->
-    <div v-if="isReportModalOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="handleModalClick">
-      <div ref="modalRef" class="modal-box bg-base-100 p-6 rounded-lg shadow-xl w-96">
-        <h3 class="font-bold text-lg mb-4">Report Tool</h3>
-        <div class="form-control">
-          <label class="label cursor-pointer">
-            <span class="label-text">Deprecated</span>
-            <input 
-              type="checkbox" 
-              v-model="reportAttributes.deprecated" 
-              class="checkbox checkbox-warning" 
-              :disabled="isCurrentToolReported"
-              :class="{'checkbox-disabled': isCurrentToolReported}"
-            />
-          </label>
-        </div>
-        <div class="form-control">
-          <label class="label cursor-pointer">
-            <span class="label-text">Experimental</span>
-            <input 
-              type="checkbox" 
-              v-model="reportAttributes.experimental" 
-              class="checkbox checkbox-warning" 
-              :disabled="isCurrentToolReported"
-              :class="{'checkbox-disabled': isCurrentToolReported}"
-            />
-          </label>
-        </div>
-        <div class="modal-action mt-6">
-          <button @click="closeReportModal" class="btn btn-ghost">
-            {{ isCurrentToolReported ? 'Close' : 'Cancel' }}
-          </button>
-          <button 
-            @click="submitReport" 
-            class="btn btn-warning" 
-            :disabled="isCurrentToolReported || (!reportAttributes.deprecated && !reportAttributes.experimental)"
-          >
-            {{ isCurrentToolReported ? 'Reported' : 'Submit Report' }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ReportToolModal
+			:is-open="isReportModalOpen"
+			:tool-name="currentTask?.tool.name"
+			:is-tool-reported="isCurrentToolReported"
+			:reported-attributes="currentTask ? (reportedToolAttributes[currentTask.tool.name] || {}) : {}"
+			@close="isReportModalOpen = false"
+			@submit="submitReport"
+    />
   </div>
 </template>
