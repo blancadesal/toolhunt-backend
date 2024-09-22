@@ -438,19 +438,13 @@ defineExpose({ resetSubmittedTasks });
             </label>
 
             <!-- Single select dropdown (for tool_type and other non-array types with options) -->
-            <select
-              v-if="!isArrayType && fieldInputOptions.length > 0"
-              ref="inputRef"
-              v-model="currentUserInput"
-              @keydown="handleEnterKey"
-              class="select select-bordered w-full"
-              :disabled="isCurrentTaskSubmitted"
-            >
-              <option disabled value="">Select an option</option>
-              <option v-for="option in fieldInputOptions" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
+            <SelectInput
+							v-if="!isArrayType && fieldInputOptions.length > 0"
+							v-model="currentUserInput"
+							:options="fieldInputOptions"
+							:disabled="isCurrentTaskSubmitted"
+							@enter="handleEnterKey"
+						/>
 
             <!-- Checkbox group for multi-select (for array types) -->
             <div v-else-if="isArrayType && fieldInputOptions.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
