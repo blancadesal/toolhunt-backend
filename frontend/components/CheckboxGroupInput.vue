@@ -1,4 +1,6 @@
 <script setup>
+import { ref, watch } from 'vue';
+
 const props = defineProps({
   modelValue: {
     type: Array,
@@ -38,15 +40,26 @@ const handleKeydown = (event) => {
     emit('enter', event);
   }
 };
+
+const firstCheckboxRef = ref(null);
+
+const focus = () => {
+  if (firstCheckboxRef.value) {
+    firstCheckboxRef.value.focus();
+  }
+};
+
+defineExpose({ focus });
 </script>
 
 <template>
-  <div
+  <div 
     class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2"
     @keydown="handleKeydown"
   >
-    <div v-for="option in options" :key="option.value" class="flex items-center">
+    <div v-for="(option, index) in options" :key="option.value" class="flex items-center">
       <input
+        :ref="index === 0 ? (el) => { firstCheckboxRef = el } : undefined"
         :id="`checkbox-${option.value}`"
         type="checkbox"
         :value="option.value"

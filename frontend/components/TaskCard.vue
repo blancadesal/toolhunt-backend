@@ -1,6 +1,10 @@
 <script setup>
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
+import ReportToolModal from './ReportToolModal.vue';
+import SelectInput from './SelectInput.vue';
+import CheckboxGroupInput from './CheckboxGroupInput.vue';
+import SingleInput from './SingleInput.vue';
 
 // Props and emits
 const props = defineProps({
@@ -30,9 +34,8 @@ const {
 const inputRef = ref(null);
 const submittedTasks = ref(new Set());
 const isSubmitting = ref(false);
-const hasAttemptedSubmit = ref(false);
 const taskInputs = ref({});
-const validationError = ref('');
+const taskValidationErrors = ref({});
 const isReportModalOpen = ref(false);
 const reportedToolAttributes = ref({});
 
@@ -49,13 +52,13 @@ watch(() => props.annotationsSchema, (newValue) => {
   }
 }, { immediate: true });
 
-watch(() => currentTaskIndex.value, () => {
-  if (currentTask.value && !(currentTask.value.id in taskInputs.value)) {
-    taskInputs.value[currentTask.value.id] = isArrayType.value ? [] : '';
+watch(() => currentTaskIndex.value, (newIndex, oldIndex) => {
+  if (newIndex !== oldIndex) {  // Only run this when actually changing tasks
+    if (currentTask.value && !(currentTask.value.id in taskInputs.value)) {
+      taskInputs.value[currentTask.value.id] = isArrayType.value ? [] : '';
+    }
+    focusInput();
   }
-  hasAttemptedSubmit.value = false;
-  validationError.value = '';
-  focusInput();
 });
 
 // Lifecycle hooks
@@ -127,6 +130,17 @@ const currentUserInput = computed({
   set: (value) => {
     if (currentTask.value) {
       taskInputs.value[currentTask.value.id] = value;
+    }
+  }
+});
+
+const currentValidationError = computed({
+  get: () => {
+    return currentTask.value ? taskValidationErrors.value[currentTask.value.id] || '' : '';
+  },
+  set: (value) => {
+    if (currentTask.value) {
+      taskValidationErrors.value[currentTask.value.id] = value;
     }
   }
 });
@@ -261,7 +275,6 @@ const submitContribution = async () => {
   if (isSubmitting.value) return;
 
   isSubmitting.value = true;
-  hasAttemptedSubmit.value = true;
   console.log('submitContribution called');
 
   if (!isLoggedIn.value || !currentTask.value || !authState.value.user) {
@@ -273,12 +286,13 @@ const submitContribution = async () => {
   const { isValid, error } = validateInput(currentUserInput.value);
   if (!isValid) {
     console.log('Input validation failed');
-    validationError.value = error || 'Invalid input';
+    currentValidationError.value = error || 'Invalid input';
     isSubmitting.value = false;
     return;
   }
 
-  validationError.value = '';
+  // Clear validation error if input is valid
+  currentValidationError.value = '';
   submittedTasks.value.add(currentTask.value.id);
 
   const submission = {
@@ -301,7 +315,7 @@ const submitContribution = async () => {
     // You might want to show a success message to the user here
   } catch (error) {
     console.error('Error submitting contribution:', error);
-    validationError.value = 'Failed to submit contribution. Please try again.';
+    currentValidationError.value = 'Failed to submit contribution. Please try again.';
     submittedTasks.value.delete(currentTask.value.id);
     isSubmitting.value = false;
     return;
@@ -317,13 +331,13 @@ const submitContribution = async () => {
 
 const resetSubmittedTasks = () => {
   submittedTasks.value.clear();
-  hasAttemptedSubmit.value = false;
   taskInputs.value = {};
+  taskValidationErrors.value = {};
 };
 
 const focusInput = () => {
   nextTick(() => {
-    if (inputRef.value) {
+    if (inputRef.value && typeof inputRef.value.focus === 'function') {
       inputRef.value.focus();
     }
   });
@@ -437,39 +451,40 @@ defineExpose({ resetSubmittedTasks });
               <span class="label-text text-lg font-semibold">{{ fieldDescription }}</span>
             </label>
 
-            <!-- Single select dropdown (for tool_type and other non-array types with options) -->
+            <!-- Use SelectInput for non-array types with options -->
             <SelectInput
-							v-if="!isArrayType && fieldInputOptions.length > 0"
-							v-model="currentUserInput"
-							:options="fieldInputOptions"
-							:disabled="isCurrentTaskSubmitted"
-							@enter="handleEnterKey"
-						/>
+              v-if="!isArrayType && fieldInputOptions.length > 0"
+              ref="inputRef"
+              v-model="currentUserInput"
+              :options="fieldInputOptions"
+              :disabled="isCurrentTaskSubmitted"
+              @enter="handleEnterKey"
+            />
 
-            <!-- Checkbox group for multi-select (for array types) -->
+            <!-- Use CheckboxGroupInput for array types with options -->
             <CheckboxGroupInput
-							v-else-if="isArrayType && fieldInputOptions.length > 0"
-							v-model="currentUserInput"
-							:options="fieldInputOptions"
-							:disabled="isCurrentTaskSubmitted"
-							@enter="handleEnterKey"
-						/>
+              v-else-if="isArrayType && fieldInputOptions.length > 0"
+              ref="inputRef"
+              v-model="currentUserInput"
+              :options="fieldInputOptions"
+              :disabled="isCurrentTaskSubmitted"
+              @enter="handleEnterKey"
+            />
 
-            <!-- Single input for non-array types -->
-            <input
+            <!-- Use SingleInput for all other input types -->
+            <SingleInput
               v-else
               ref="inputRef"
               v-model="currentUserInput"
               :type="getInputType(currentTask.field)"
               :placeholder="getPlaceholder(currentTask.field)"
-              class="input input-bordered w-full"
-              @keydown="handleEnterKey"
               :disabled="isCurrentTaskSubmitted"
+              @enter="handleEnterKey"
             />
 
             <!-- Validation Error -->
-            <div v-if="hasAttemptedSubmit && validationError" class="text-error text-sm mt-1">
-              {{ validationError }}
+            <div v-if="currentValidationError" class="text-error text-sm mt-1">
+              {{ currentValidationError }}
             </div>
           </div>
         </div>
@@ -501,12 +516,13 @@ defineExpose({ resetSubmittedTasks });
 
     <!-- Report Tool Modal -->
     <ReportToolModal
-			:is-open="isReportModalOpen"
-			:tool-name="currentTask?.tool.name"
-			:is-tool-reported="isCurrentToolReported"
-			:reported-attributes="currentTask ? (reportedToolAttributes[currentTask.tool.name] || {}) : {}"
-			@close="isReportModalOpen = false"
-			@submit="submitReport"
+      :is-open="isReportModalOpen"
+      :tool-name="currentTask?.tool.name"
+      :is-tool-reported="isCurrentToolReported"
+      :reported-attributes="reportedToolAttributes[currentTask?.tool.name]"
+      @close="isReportModalOpen = false"
+      @submit="submitReport"
     />
   </div>
 </template>
+

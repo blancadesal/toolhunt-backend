@@ -1,4 +1,6 @@
 <script setup>
+import { ref, watch } from 'vue';
+
 const props = defineProps({
   modelValue: {
     type: [String, Number],
@@ -36,10 +38,21 @@ const handleKeydown = (event) => {
     emit('enter', event);
   }
 };
+
+const selectRef = ref(null);
+
+const focus = () => {
+  if (selectRef.value) {
+    selectRef.value.focus();
+  }
+};
+
+defineExpose({ focus });
 </script>
 
 <template>
   <select
+    ref="selectRef"
     :value="selectedValue"
     @input="updateValue"
     @keydown="handleKeydown"
