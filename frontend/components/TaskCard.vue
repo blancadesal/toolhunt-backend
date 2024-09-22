@@ -1,7 +1,4 @@
 <script setup>
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
-
 // Props and emits
 const props = defineProps({
   tasks: Array,
@@ -35,33 +32,28 @@ const {
   placeholder,
 } = useFieldSchema(currentTask, computed(() => props.annotationsSchema));
 
+const {
+  validateInput,
+  validationError,
+  setValidationError,
+  clearValidationError
+} = useInputValidation(fieldSchema, isArrayType);
+
 // Refs
 const inputRef = ref(null);
 const submittedTasks = ref(new Set());
 const isSubmitting = ref(false);
 const taskInputs = ref({});
-const taskValidationErrors = ref({});
 const isReportModalOpen = ref(false);
 const reportedToolAttributes = ref({});
 
-// Ajv setup
-const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
-addFormats(ajv);
-
 // Watchers
-watch(() => props.annotationsSchema, (newValue) => {
-  if (newValue && newValue.schemas) {
-    Object.entries(newValue.schemas).forEach(([key, schema]) => {
-      ajv.addSchema(schema, `#/schemas/${key}`);
-    });
-  }
-}, { immediate: true });
-
 watch(() => currentTaskIndex.value, (newIndex, oldIndex) => {
   if (newIndex !== oldIndex) {  // Only run this when actually changing tasks
     if (currentTask.value && !(currentTask.value.id in taskInputs.value)) {
       taskInputs.value[currentTask.value.id] = isArrayType.value ? [] : '';
     }
+    clearValidationError();  // Clear validation error when changing tasks
     focusInput();
   }
 });
@@ -107,17 +99,6 @@ const currentUserInput = computed({
   }
 });
 
-const currentValidationError = computed({
-  get: () => {
-    return currentTask.value ? taskValidationErrors.value[currentTask.value.id] || '' : '';
-  },
-  set: (value) => {
-    if (currentTask.value) {
-      taskValidationErrors.value[currentTask.value.id] = value;
-    }
-  }
-});
-
 const taskIndicators = computed(() => {
   return props.tasks.map((task, index) => ({
     index,
@@ -142,37 +123,6 @@ const isCurrentToolReported = computed(() => {
 });
 
 // Methods
-const validateInput = (input) => {
-  if (fieldSchema.value) {
-    try {
-      const validate = ajv.compile(fieldSchema.value);
-      if (isArrayType.value && Array.isArray(input) && input.length === 0) {
-        return { isValid: false, error: 'Input cannot be empty' };
-      }
-      const isValid = validate(input);
-      if (!isValid) {
-        // Look for format or pattern errors
-        const formatError = validate.errors.find(e => e.keyword === 'format');
-        const patternError = validate.errors.find(e => e.keyword === 'pattern');
-
-        if (formatError) {
-          return { isValid: false, error: `Input must match format "${formatError.params.format}"` };
-        } else if (patternError) {
-          return { isValid: false, error: `Input must match pattern "${patternError.params.pattern}"` };
-        }
-
-        // If no format or pattern error, return a generic message
-        return { isValid: false, error: 'Invalid input' };
-      }
-      return { isValid: true, error: null };
-    } catch (e) {
-      console.error('Error compiling validator for field:', e);
-      return { isValid: true, error: null }; // If we can't validate, assume it's valid
-    }
-  }
-  return { isValid: true, error: null };
-};
-
 const handleEnterKey = (event) => {
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();
@@ -197,13 +147,13 @@ const submitContribution = async () => {
   const { isValid, error } = validateInput(currentUserInput.value);
   if (!isValid) {
     console.log('Input validation failed');
-    currentValidationError.value = error || 'Invalid input';
+    setValidationError(error || 'Invalid input');
     isSubmitting.value = false;
     return;
   }
 
   // Clear validation error if input is valid
-  currentValidationError.value = '';
+  clearValidationError();
   submittedTasks.value.add(currentTask.value.id);
 
   const submission = {
@@ -226,7 +176,7 @@ const submitContribution = async () => {
     // You might want to show a success message to the user here
   } catch (error) {
     console.error('Error submitting contribution:', error);
-    currentValidationError.value = 'Failed to submit contribution. Please try again.';
+    setValidationError('Failed to submit contribution. Please try again.');
     submittedTasks.value.delete(currentTask.value.id);
     isSubmitting.value = false;
     return;
@@ -243,7 +193,7 @@ const submitContribution = async () => {
 const resetSubmittedTasks = () => {
   submittedTasks.value.clear();
   taskInputs.value = {};
-  taskValidationErrors.value = {};
+  clearValidationError();  // Clear validation error when resetting tasks
 };
 
 const focusInput = () => {
@@ -394,8 +344,8 @@ defineExpose({ resetSubmittedTasks });
             />
 
             <!-- Validation Error -->
-            <div v-if="currentValidationError" class="text-error text-sm mt-1">
-              {{ currentValidationError }}
+            <div v-if="validationError" class="text-error text-sm mt-1">
+              {{ validationError }}
             </div>
           </div>
         </div>
