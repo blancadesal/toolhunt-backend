@@ -447,20 +447,13 @@ defineExpose({ resetSubmittedTasks });
 						/>
 
             <!-- Checkbox group for multi-select (for array types) -->
-            <div v-else-if="isArrayType && fieldInputOptions.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              <div v-for="option in fieldInputOptions" :key="option.value" class="flex items-center">
-                <input
-                  :id="`checkbox-${option.value}`"
-                  type="checkbox"
-                  :value="option.value"
-                  v-model="currentUserInput"
-                  @keydown="handleEnterKey"
-                  class="checkbox checkbox-primary border-2 mr-2"
-                  :disabled="isCurrentTaskSubmitted"
-                />
-                <label :for="`checkbox-${option.value}`" class="cursor-pointer">{{ option.label }}</label>
-              </div>
-            </div>
+            <CheckboxGroupInput
+							v-else-if="isArrayType && fieldInputOptions.length > 0"
+							v-model="currentUserInput"
+							:options="fieldInputOptions"
+							:disabled="isCurrentTaskSubmitted"
+							@enter="handleEnterKey"
+						/>
 
             <!-- Single input for non-array types -->
             <input
