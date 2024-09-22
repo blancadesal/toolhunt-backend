@@ -1,10 +1,6 @@
 <script setup>
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import ReportToolModal from './ReportToolModal.vue';
-import SelectInput from './SelectInput.vue';
-import CheckboxGroupInput from './CheckboxGroupInput.vue';
-import SingleInput from './SingleInput.vue';
 
 // Props and emits
 const props = defineProps({
@@ -29,6 +25,15 @@ const {
   handleKeyNavigation,
   jumpToTask
 } = useTaskNavigation(tasksRef);
+
+const {
+  fieldSchema,
+  isArrayType,
+  fieldDescription,
+  fieldInputOptions,
+  inputType,
+  placeholder,
+} = useFieldSchema(currentTask, computed(() => props.annotationsSchema));
 
 // Refs
 const inputRef = ref(null);
@@ -84,38 +89,6 @@ const isCurrentTaskSubmitted = computed(() => {
   return currentTask.value && submittedTasks.value.has(currentTask.value.id);
 });
 
-const fieldSchema = computed(() => {
-  const fieldName = currentTask.value?.field;
-  const fieldProperties = props.annotationsSchema?.schemas?.Annotations?.properties?.[fieldName];
-
-  if (!fieldProperties) return null;
-
-  let fieldSchemaValue = {
-    ...fieldProperties,
-    $id: `#/fieldSchema/${fieldName}`
-  };
-
-  if (fieldSchemaValue.nullable === true) {
-    fieldSchemaValue = {
-      oneOf: [
-        { type: 'null' },
-        { ...fieldSchemaValue, nullable: undefined }
-      ]
-    };
-  }
-
-  if (fieldName === 'repository') {
-    fieldSchemaValue.format = 'uri';
-  }
-
-  return fieldSchemaValue;
-});
-
-const isArrayType = computed(() => {
-  const fieldName = currentTask.value?.field;
-  return props.annotationsSchema?.schemas?.Annotations?.properties?.[fieldName]?.type === 'array';
-});
-
 const currentUserInput = computed({
   get: () => {
     if (currentTask.value) {
@@ -143,34 +116,6 @@ const currentValidationError = computed({
       taskValidationErrors.value[currentTask.value.id] = value;
     }
   }
-});
-
-const fieldDescription = computed(() => {
-  const fieldName = currentTask.value?.field;
-  const description = props.annotationsSchema?.schemas?.Annotations?.properties?.[fieldName]?.description;
-  return description ?? `Enter ${toHumanReadable(fieldName)}`;
-});
-
-const fieldInputOptions = computed(() => {
-  const fieldName = currentTask.value?.field;
-  const fieldSchema = props.annotationsSchema?.schemas?.Annotations?.properties?.[fieldName];
-
-  if (!fieldSchema) return [];
-
-  let options = [];
-
-  if (fieldSchema.type === 'array' && fieldSchema.items?.$ref) {
-    const enumName = fieldSchema.items.$ref.split('/').pop();
-    options = props.annotationsSchema?.schemas?.[enumName]?.enum ?? [];
-  } else if (fieldSchema.allOf?.[0]?.$ref) {
-    const enumName = fieldSchema.allOf[0].$ref.split('/').pop();
-    options = props.annotationsSchema?.schemas?.[enumName]?.enum ?? [];
-  }
-
-  return options.map(option => ({
-    value: option,
-    label: toHumanReadable(option)
-  }));
 });
 
 const taskIndicators = computed(() => {
@@ -226,40 +171,6 @@ const validateInput = (input) => {
     }
   }
   return { isValid: true, error: null };
-};
-
-const getPlaceholder = (fieldName) => {
-  switch (fieldName) {
-    case 'repository':
-      return 'Enter repository URL (e.g., https://github.com/username/repository)';
-    case 'api_url':
-      return 'Enter API URL';
-    case 'bugtracker_url':
-      return 'Enter bug tracker URL';
-    case 'translate_url':
-      return 'Enter translation interface URL';
-    case 'icon':
-      return 'Enter icon URL (e.g., https://commons.wikimedia.org/wiki/File:some_tool_logo_mini.svg)';
-    case 'wikidata_qid':
-      return 'Enter wikidata ID (e.g., Q43649390)';
-    default:
-      return `Enter ${fieldName}`;
-  }
-};
-
-const getInputType = (fieldName) => {
-  switch (fieldName) {
-    case 'repository':
-    case 'api_url':
-    case 'bugtracker_url':
-    case 'translate_url':
-      return 'url';
-    case 'deprecated':
-    case 'experimental':
-      return 'checkbox';
-    default:
-      return 'text';
-  }
 };
 
 const handleEnterKey = (event) => {
@@ -476,8 +387,8 @@ defineExpose({ resetSubmittedTasks });
               v-else
               ref="inputRef"
               v-model="currentUserInput"
-              :type="getInputType(currentTask.field)"
-              :placeholder="getPlaceholder(currentTask.field)"
+              :type="inputType"
+              :placeholder="placeholder"
               :disabled="isCurrentTaskSubmitted"
               @enter="handleEnterKey"
             />
@@ -525,4 +436,3 @@ defineExpose({ resetSubmittedTasks });
     />
   </div>
 </template>
-
