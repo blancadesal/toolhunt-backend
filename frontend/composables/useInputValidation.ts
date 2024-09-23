@@ -1,15 +1,30 @@
-import Ajv from 'ajv';
+import Ajv, { type JSONSchemaType } from 'ajv';
 import addFormats from 'ajv-formats';
 
-export function useInputValidation(fieldSchema: { value: any; }, isArrayType: { value: any; }) {
+export function useInputValidation(fieldSchema: { value: any; }, isArrayType: { value: boolean; }, annotationsSchema: { value: any; }) {
   const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
   addFormats(ajv);
 
   const validationError = ref('');
+  const schemasAdded = ref(false);
 
-  const validateInput = (input: string | any[]) => {
+  const validateInput = (input: unknown) => {
     if (fieldSchema.value) {
       try {
+        // Add all schemas from annotationsSchema only once
+        if (!schemasAdded.value && annotationsSchema.value && annotationsSchema.value.schemas) {
+          Object.entries(annotationsSchema.value.schemas).forEach(([key, schema]) => {
+            if (typeof schema === 'object' && schema !== null) {
+              try {
+                ajv.addSchema(schema as JSONSchemaType<unknown>, `#/schemas/${key}`);
+              } catch (e) {
+                console.warn(`Schema for ${key} already exists, skipping...`);
+              }
+            }
+          });
+          schemasAdded.value = true;
+        }
+
         const validate = ajv.compile(fieldSchema.value);
         if (isArrayType.value && Array.isArray(input) && input.length === 0) {
           return { isValid: false, error: 'Input cannot be empty' };

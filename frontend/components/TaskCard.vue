@@ -37,7 +37,7 @@ const {
   validationError,
   setValidationError,
   clearValidationError
-} = useInputValidation(fieldSchema, isArrayType);
+} = useInputValidation(fieldSchema, isArrayType, computed(() => props.annotationsSchema));
 
 // Refs
 const inputRef = ref(null);
@@ -146,7 +146,7 @@ const submitContribution = async () => {
 
   const { isValid, error } = validateInput(currentUserInput.value);
   if (!isValid) {
-    console.log('Input validation failed');
+    console.log('Input validation failed:', error);
     setValidationError(error || 'Invalid input');
     isSubmitting.value = false;
     return;
