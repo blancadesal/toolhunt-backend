@@ -1,6 +1,4 @@
 <script setup>
-import { ref, computed } from 'vue'
-
 const props = defineProps({
   fieldNames: {
     type: Array,
@@ -37,18 +35,10 @@ const toggleField = (field) => {
 
 const toggleAllFields = () => {
   if (props.activeFields.length === props.fieldNames.length) {
-    // If all fields are selected, deselect all
     emit('updateFilters', [])
   } else {
-    // Otherwise, select all fields
     emit('updateFilters', [...props.fieldNames])
   }
-}
-
-// Utility function (assuming it's defined elsewhere)
-function toHumanReadable(str) {
-  // Convert snake_case or other formats to Human Readable
-  return str.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
 }
 </script>
 

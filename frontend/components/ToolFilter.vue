@@ -1,5 +1,4 @@
 <script setup>
-import { ref, computed } from 'vue'
 import Fuse from 'fuse.js'
 
 const props = defineProps({

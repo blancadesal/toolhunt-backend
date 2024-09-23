@@ -1,29 +1,26 @@
 <script setup>
-import { ref, onMounted, computed, nextTick } from 'vue'
-import FieldFilter from '@/components/FieldFilter.vue'
-import ToolFilter from '@/components/ToolFilter.vue'
-import TaskCard from '@/components/TaskCard.vue'
-
 const { tasks, fieldNames, annotationsSchema, toolNames, fetchTasks, fetchFieldNames, fetchAnnotationsSchema, fetchToolNames } = useToolhuntApi()
 
 const currentTaskIndex = ref(0)
 const isLoading = ref(true)
 const taskCardRef = ref(null)
 
+const selectedFilters = ref({
+  fields: [],
+  tools: []
+})
+
 const activeFilters = ref({
   fields: [],
   tools: []
 })
 
-// Remove the hardcoded toolData
+const isApplyingFilters = ref(false)
 
 const loadNewBatch = async () => {
-  // Capture current scroll position
   const scrollPosition = window.scrollY
 
   isLoading.value = true
-  // Remove the line that clears tasks to prevent DOM reflow
-  // tasks.value = []
   currentTaskIndex.value = 0
   if (taskCardRef.value) {
     taskCardRef.value.resetSubmittedTasks()
@@ -39,33 +36,45 @@ const loadNewBatch = async () => {
   await fetchTasks(toolFilter, fieldFilter)
   isLoading.value = false
 
-  // Use nextTick to ensure DOM updates are applied before scrolling
   await nextTick()
   window.scrollTo({ top: scrollPosition, behavior: 'smooth' })
 }
 
-const updateActiveFilters = (type, filters) => {
-  activeFilters.value[type] = filters
-  loadNewBatch()
+const updateSelectedFilters = (type, filters) => {
+  selectedFilters.value[type] = filters
 }
 
-const removeActiveFilter = (type, filter) => {
-  activeFilters.value[type] = activeFilters.value[type].filter(f => f !== filter)
-  loadNewBatch()
+const removeSelectedFilter = (type, filter) => {
+  selectedFilters.value[type] = selectedFilters.value[type].filter(f => f !== filter)
 }
 
-const clearAllFilters = () => { // Removed event parameter if not needed
+const applyFilters = async () => {
+  isApplyingFilters.value = true
+  activeFilters.value = JSON.parse(JSON.stringify(selectedFilters.value))
+  await loadNewBatch()
+  isApplyingFilters.value = false
+}
+
+const clearAllFilters = () => {
+  selectedFilters.value = { fields: [], tools: [] }
   activeFilters.value = { fields: [], tools: [] }
   loadNewBatch()
 
-  // Smooth scroll to top if needed
   if (window.scrollY > 0) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
 
+const hasSelectedFilters = computed(() => {
+  return selectedFilters.value.fields.length > 0 || selectedFilters.value.tools.length > 0
+})
+
 const hasActiveFilters = computed(() => {
   return activeFilters.value.fields.length > 0 || activeFilters.value.tools.length > 0
+})
+
+const isFiltersDirty = computed(() => {
+  return JSON.stringify(selectedFilters.value) !== JSON.stringify(activeFilters.value)
 })
 
 onMounted(async () => {
@@ -90,8 +99,8 @@ onMounted(async () => {
         <div class="flex flex-col h-full">
           <FieldFilter
             :field-names="fieldNames"
-            :active-fields="activeFilters.fields"
-            @update-filters="filters => updateActiveFilters('fields', filters)"
+            :active-fields="selectedFilters.fields"
+            @update-filters="filters => updateSelectedFilters('fields', filters)"
             class="flex-grow"
           />
         </div>
@@ -100,38 +109,78 @@ onMounted(async () => {
         <div class="flex flex-col h-full">
           <ToolFilter
             :tools="toolNames?.all_titles || []"
-            :active-tools="activeFilters.tools"
-            @update-filters="filters => updateActiveFilters('tools', filters)"
+            :active-tools="selectedFilters.tools"
+            @update-filters="filters => updateSelectedFilters('tools', filters)"
             class="flex-grow"
           />
         </div>
       </div>
 
-      <!-- Active Filters Display -->
+      <!-- Combined Filters Display -->
       <div class="mt-6 p-4 bg-base-200 rounded-lg shadow-md min-h-[100px] transition-all duration-300">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-lg font-semibold text-secondary">Active Filters</h2>
-          <button
-            type="button"
-            @click="clearAllFilters"
-            class="btn btn-secondary btn-sm"
-            :disabled="!hasActiveFilters"
-          >
-            Clear All Filters
-          </button>
-        </div>
-        <div v-if="hasActiveFilters" class="flex flex-wrap gap-2">
-          <div v-for="field in activeFilters.fields" :key="field" class="badge badge-primary badge-lg">
-            Task: {{ toHumanReadable(field) }}
-            <button @click="removeActiveFilter('fields', field)" class="ml-2 text-xs">✕</button>
+          <h2 class="text-lg font-semibold text-secondary">Filters</h2>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              @click="applyFilters"
+              class="btn btn-primary btn-sm"
+              :disabled="!isFiltersDirty || isApplyingFilters"
+            >
+              {{ isApplyingFilters ? 'Applying...' : 'Apply Filters' }}
+            </button>
+            <button
+              type="button"
+              @click="clearAllFilters"
+              class="btn btn-secondary btn-sm"
+              :disabled="!hasSelectedFilters && !hasActiveFilters"
+            >
+              Clear All Filters
+            </button>
           </div>
-          <div v-for="tool in activeFilters.tools" :key="tool" class="badge badge-secondary badge-lg">
+        </div>
+        <div v-if="hasSelectedFilters || hasActiveFilters" class="flex flex-wrap gap-2">
+          <div 
+            v-for="field in new Set([...selectedFilters.fields, ...activeFilters.fields])" 
+            :key="field"
+            class="badge badge-lg"
+            :class="{
+              'badge-primary': activeFilters.fields.includes(field),
+              'badge-outline badge-primary': !activeFilters.fields.includes(field) && selectedFilters.fields.includes(field),
+              'opacity-50': !selectedFilters.fields.includes(field) && activeFilters.fields.includes(field)
+            }"
+          >
+            Task: {{ toHumanReadable(field) }}
+            <button 
+              v-if="selectedFilters.fields.includes(field)"
+              @click="removeSelectedFilter('fields', field)" 
+              class="ml-2 text-xs"
+            >
+              ✕
+            </button>
+          </div>
+          <div 
+            v-for="tool in new Set([...selectedFilters.tools, ...activeFilters.tools])" 
+            :key="tool"
+            class="badge badge-lg"
+            :class="{
+              'badge-secondary': activeFilters.tools.includes(tool),
+              'badge-outline badge-secondary': !activeFilters.tools.includes(tool) && selectedFilters.tools.includes(tool),
+              'opacity-50': !selectedFilters.tools.includes(tool) && activeFilters.tools.includes(tool)
+            }"
+          >
             Tool: {{ tool }}
-            <button @click="removeActiveFilter('tools', tool)" class="ml-2 text-xs">✕</button>
+            <button 
+              v-if="selectedFilters.tools.includes(tool)"
+              @click="removeSelectedFilter('tools', tool)" 
+              class="ml-2 text-xs"
+            >
+              ✕
+            </button>
           </div>
         </div>
         <div v-else class="text-gray-500 italic">
-          No active filters. Select filters from above to refine your search.
+          No filters selected. Select filters from above and click 'Apply Filters' to refine your search.
         </div>
       </div>
     </div>
