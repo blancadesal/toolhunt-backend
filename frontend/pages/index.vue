@@ -140,8 +140,8 @@ onMounted(async () => {
           </div>
         </div>
         <div v-if="hasSelectedFilters || hasActiveFilters" class="flex flex-wrap gap-2">
-          <div 
-            v-for="field in new Set([...selectedFilters.fields, ...activeFilters.fields])" 
+          <div
+            v-for="field in new Set([...selectedFilters.fields, ...activeFilters.fields])"
             :key="field"
             class="badge badge-lg"
             :class="{
@@ -151,16 +151,16 @@ onMounted(async () => {
             }"
           >
             Task: {{ toHumanReadable(field) }}
-            <button 
+            <button
               v-if="selectedFilters.fields.includes(field)"
-              @click="removeSelectedFilter('fields', field)" 
+              @click="removeSelectedFilter('fields', field)"
               class="ml-2 text-xs"
             >
               ✕
             </button>
           </div>
-          <div 
-            v-for="tool in new Set([...selectedFilters.tools, ...activeFilters.tools])" 
+          <div
+            v-for="tool in new Set([...selectedFilters.tools, ...activeFilters.tools])"
             :key="tool"
             class="badge badge-lg"
             :class="{
@@ -170,9 +170,9 @@ onMounted(async () => {
             }"
           >
             Tool: {{ tool }}
-            <button 
+            <button
               v-if="selectedFilters.tools.includes(tool)"
-              @click="removeSelectedFilter('tools', tool)" 
+              @click="removeSelectedFilter('tools', tool)"
               class="ml-2 text-xs"
             >
               ✕

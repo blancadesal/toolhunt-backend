@@ -73,10 +73,10 @@ const tooltips = {
         <div v-if="!showConfirmation && !showSuccess">
           <div class="form-control">
             <label class="label cursor-pointer justify-start items-center">
-              <input 
-                type="checkbox" 
-                v-model="reportAttributes.deprecated" 
-                class="checkbox checkbox-warning" 
+              <input
+                type="checkbox"
+                v-model="reportAttributes.deprecated"
+                class="checkbox checkbox-warning"
                 :disabled="isToolReported"
               />
               <span class="label-text ml-2 flex-grow">
@@ -94,10 +94,10 @@ const tooltips = {
           </div>
           <div class="form-control">
             <label class="label cursor-pointer justify-start items-center">
-              <input 
-                type="checkbox" 
-                v-model="reportAttributes.experimental" 
-                class="checkbox checkbox-warning" 
+              <input
+                type="checkbox"
+                v-model="reportAttributes.experimental"
+                class="checkbox checkbox-warning"
                 :disabled="isToolReported"
               />
               <span class="label-text ml-2 flex-grow">
@@ -117,9 +117,9 @@ const tooltips = {
             <button @click="closeModal" class="btn btn-ghost">
               {{ isToolReported ? 'Close' : 'Cancel' }}
             </button>
-            <button 
-              @click="submitReport" 
-              class="btn btn-warning" 
+            <button
+              @click="submitReport"
+              class="btn btn-warning"
               :disabled="isSubmitDisabled"
             >
               {{ isToolReported ? 'Reported' : 'Submit Report' }}
