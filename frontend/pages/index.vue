@@ -180,7 +180,7 @@ onMounted(async () => {
           </div>
         </div>
         <div v-else class="text-gray-500 italic">
-          No filters selected. Select filters from above and click 'Apply Filters' to refine your search.
+          No filters selected. Select filters from above and click 'Apply Filters' to refine your task selection.
         </div>
       </div>
     </div>
