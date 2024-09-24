@@ -1,40 +1,21 @@
 import logging
 import random
 from datetime import datetime, timedelta
-from typing import Literal, Optional, Union
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
 from tortoise.contrib.fastapi import HTTPNotFoundError
 from tortoise.exceptions import OperationalError
 from tortoise.expressions import Q
 from tortoise.transactions import atomic
 
 from backend.config import get_settings
-from backend.models.pydantic import TaskSchema, ToolSchema
+from backend.models.pydantic import TaskSchema, TaskSubmission, ToolSchema
 from backend.models.tortoise import CompletedTask, Task, Tool, User
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 settings = get_settings()
 logger = logging.getLogger(__name__)
-
-
-# Pydantic models for the request body
-class ToolData(BaseModel):
-    name: str
-    title: str
-
-
-class UserData(BaseModel):
-    id: str
-
-
-class TaskSubmission(BaseModel):
-    tool: ToolData
-    user: UserData
-    completed_date: str
-    value: Union[bool, str, list[str]]
-    field: Optional[Literal["deprecated", "experimental"]] = None
 
 
 # CRUD functions

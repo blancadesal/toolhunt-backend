@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional, Union
 
 from pydantic import BaseModel
 
@@ -42,3 +42,29 @@ class User(BaseModel):
     email: str
     encrypted_token: Optional[bytes] = None
     token_expires_at: Optional[datetime] = None
+
+
+class ToolData(BaseModel):
+    name: str
+    title: str
+
+    class Config:
+        from_attributes = True
+
+
+class UserData(BaseModel):
+    id: str
+
+    class Config:
+        from_attributes = True
+
+
+class TaskSubmission(BaseModel):
+    tool: ToolData
+    user: UserData
+    completed_date: str
+    value: Union[bool, str, list[str]]
+    field: Optional[Literal["deprecated", "experimental"]] = None
+
+    class Config:
+        from_attributes = True
