@@ -50,7 +50,7 @@ const toggleAllFields = () => {
          class="btn btn-primary w-full"
          type="button"
       >
-        {{ activeFields.length > 0 ? `Filter by Task (${activeFields.length})` : 'Select Fields' }}
+        {{ activeFields.length > 0 ? `Filter by Annotation (${activeFields.length})` : 'Select Annotations' }}
       </button>
     </div>
 
@@ -58,7 +58,7 @@ const toggleAllFields = () => {
     <div v-if="isCardOpen" class="card bg-base-200 shadow-xl mt-4 flex flex-col">
       <div class="card-body p-4">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="card-title text-secondary">Select Fields</h2>
+          <h2 class="card-title text-secondary">Select Annotations</h2>
           <button
             @click="toggleAllFields"
             class="btn btn-sm btn-secondary"

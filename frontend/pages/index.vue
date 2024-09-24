@@ -150,7 +150,7 @@ onMounted(async () => {
               'opacity-50': !selectedFilters.fields.includes(field) && activeFilters.fields.includes(field)
             }"
           >
-            Task: {{ toHumanReadable(field) }}
+            Annotation: {{ toHumanReadable(field) }}
             <button
               v-if="selectedFilters.fields.includes(field)"
               @click="removeSelectedFilter('fields', field)"
