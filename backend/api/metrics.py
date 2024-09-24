@@ -88,7 +88,7 @@ class UserContributionsResponse(BaseModel):
 async def get_user_contributions(
     username: str,
     limit: Optional[int] = Query(
-        10, ge=1, le=100, description="Maximum number of results to return"
+        None, ge=1, description="Maximum number of results to return (optional)"
     ),
 ):
     # First, check if the user exists
@@ -99,13 +99,12 @@ async def get_user_contributions(
     # Get the total number of contributions
     total_contributions = await CompletedTask.filter(user=username).count()
 
-    # Get the limited list of contributions
-    contributions = (
-        await CompletedTask.filter(user=username)
-        .order_by("-completed_date")
-        .limit(limit)
-        .values("completed_date", "tool_title", "field")
-    )
+    # Get all contributions, or limit if specified
+    query = CompletedTask.filter(user=username).order_by("-completed_date")
+    if limit:
+        query = query.limit(limit)
+
+    contributions = await query.values("completed_date", "tool_title", "field")
 
     return UserContributionsResponse(
         contributions=[
