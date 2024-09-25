@@ -27,6 +27,9 @@ async def get_tasks_from_db(
 ) -> list[TaskSchema]:
     query = Task.all().prefetch_related("tool")
 
+    # Add filter for non-deprecated and non-experimental tools
+    query = query.filter(tool__deprecated=False, tool__experimental=False)
+
     if field_names:
         query = query.filter(
             field__in=[name.strip() for name in field_names.split(",")]
@@ -163,9 +166,6 @@ async def submit_task(task_id: int, submission: TaskSubmission):
                 **{submission.field: submission.value}
             )
             logger.info(f"Updated Tool: {task.tool.name}")
-
-            deleted_count = await Task.filter(Q(tool_id=task.tool.name)).delete()
-            logger.info(f"Deleted {deleted_count} tasks for tool: {task.tool.name}")
         else:
             await Task.filter(id=task_id).delete()
             logger.info(f"Deleted task: {task_id}")
@@ -174,6 +174,7 @@ async def submit_task(task_id: int, submission: TaskSubmission):
             "message": "Task submitted successfully",
             "completed_task_id": completed_task.id,
         }
+
     except OperationalError as e:
         logger.error(f"Database operational error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

@@ -173,7 +173,7 @@ const submitContribution = async () => {
   try {
     await submitTask(currentTask.value.id, submission);
     console.log('Contribution submitted successfully');
-    // You might want to show a success message to the user here
+    // We might want to show a success message to the user here
   } catch (error) {
     console.error('Error submitting contribution:', error);
     setValidationError('Failed to submit contribution. Please try again.');
@@ -237,7 +237,7 @@ const submitReport = async (attributes) => {
         console.log(`Report for ${attribute} submitted successfully`);
       } catch (error) {
         console.error(`Error submitting report for ${attribute}:`, error);
-        // You might want to show an error message to the user here
+        // We might want to show an error message to the user here
       }
     }
   }
@@ -294,7 +294,7 @@ defineExpose({ resetSubmittedTasks });
               </a>
             </h2>
             <button @click="openReportModal" class="btn btn-sm" :class="isCurrentToolReported ? 'btn-success' : 'btn-warning'">
-              {{ isCurrentToolReported ? 'Tool Reported' : 'Report Tool' }}
+              {{ isCurrentToolReported ? 'Tool Flagged' : 'Flag Tool' }}
             </button>
           </div>
           <p class="mb-4 text-primary-content">{{ currentTask.tool.description }}</p>

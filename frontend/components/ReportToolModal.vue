@@ -69,7 +69,7 @@ const tooltips = {
   <div v-if="isOpen" class="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center">
     <div class="modal modal-open">
       <div class="modal-box relative">
-        <h3 class="font-bold text-lg mb-4">Report Tool: {{ toolName }}</h3>
+        <h3 class="font-bold text-lg mb-4">Flag Tool: {{ toolName }}</h3>
         <div v-if="!showConfirmation && !showSuccess">
           <div class="form-control">
             <label class="label cursor-pointer justify-start items-center">
@@ -122,12 +122,12 @@ const tooltips = {
               class="btn btn-warning"
               :disabled="isSubmitDisabled"
             >
-              {{ isToolReported ? 'Reported' : 'Submit Report' }}
+              {{ isToolReported ? 'Flagged' : 'Submit' }}
             </button>
           </div>
         </div>
         <div v-else-if="showConfirmation" class="text-center">
-          <p class="mb-4">Are you sure you want to report this tool? This action cannot be undone and will remove all associated tasks.</p>
+          <p class="mb-4">Are you sure you want to flag this tool? This action cannot be undone and will remove this tool from future batches.</p>
           <div class="flex justify-center space-x-4">
             <button @click="showConfirmation = false" class="btn btn-ghost">Cancel</button>
             <button @click="confirmSubmit" class="btn btn-warning">Confirm</button>
