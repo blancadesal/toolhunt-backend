@@ -49,6 +49,7 @@ class ToolhuntTool:
     url: str
     missing_annotations: set[str]
     deprecated: bool
+    experimental: bool
 
     @property
     def is_completed(self):
@@ -57,6 +58,10 @@ class ToolhuntTool:
 
 def is_deprecated(tool):
     return tool["deprecated"] or tool["annotations"]["deprecated"]
+
+
+def is_experimental(tool):
+    return tool["experimental"] or tool["annotations"]["experimental"]
 
 
 def get_missing_annotations(tool_info, filter_by=settings.active_annotations):
@@ -80,8 +85,9 @@ def clean_tool_data(tool_data):
             url=tool["url"],
             missing_annotations=get_missing_annotations(tool),
             deprecated=is_deprecated(tool),
+            experimental=is_experimental(tool),
         )
-        if not t.deprecated:
+        if not t.deprecated and not t.experimental:
             tools.append(t)
     return tools
 
