@@ -5,7 +5,7 @@ const props = defineProps({
   annotationsSchema: Object,
 });
 
-const emit = defineEmits(['load-new-batch']);
+const emit = defineEmits(['load-new-batch', 'report-submitted']);
 
 // Composables
 const { isLoggedIn, fetchUserData, authState } = useAuth();
@@ -253,6 +253,9 @@ const submitReport = async (attributes) => {
         }
       }
     }
+
+    // Emit an event to signal that a report has been submitted
+    emit('report-submitted', currentTask.value.tool.name);
   }
 
   // Set a timeout to close the modal after 5 seconds

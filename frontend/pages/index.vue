@@ -77,6 +77,11 @@ const isFiltersDirty = computed(() => {
   return JSON.stringify(selectedFilters.value) !== JSON.stringify(activeFilters.value)
 })
 
+const handleReportSubmitted = async (toolName) => {
+  console.log(`Tool reported: ${toolName}`);
+  await fetchToolNames();
+};
+
 onMounted(async () => {
   isLoading.value = true
   await Promise.all([
@@ -201,6 +206,7 @@ onMounted(async () => {
       :annotations-schema="annotationsSchema"
       @update:current-task-index="currentTaskIndex = $event"
       @load-new-batch="loadNewBatch"
+      @report-submitted="handleReportSubmitted"
       class="w-full max-w-7xl"
     />
   </div>
