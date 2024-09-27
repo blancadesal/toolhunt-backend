@@ -72,9 +72,9 @@ const handleKeydown = (event) => {
         @input="(e) => { pair.url = e.target.value; updateModelValue(); }"
         @keydown="handleKeydown"
       >
-      <button 
+      <button
         v-if="languageUrlPairs.length > 1"
-        class="btn btn-ghost btn-sm p-1 h-8 w-8 min-h-0 hover:bg-base-200" 
+        class="btn btn-ghost btn-sm p-1 h-8 w-8 min-h-0 hover:bg-base-200"
         :disabled="disabled"
         title="Remove"
         @click="removePair(index)"

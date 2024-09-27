@@ -2,9 +2,9 @@ import Ajv, { type JSONSchemaType } from 'ajv';
 import addFormats from 'ajv-formats';
 
 export function useInputValidation(fieldSchema: Ref<JSONSchemaType<unknown>>, isArrayType: Ref<boolean>, annotationsSchema: Ref<AnnotationsSchema>) {
-  const ajv = new Ajv({ 
-    allErrors: true, 
-    strictSchema: false, 
+  const ajv = new Ajv({
+    allErrors: true,
+    strictSchema: false,
     strictTypes: false,
     // Add this option to ensure full validation of formats
     validateFormats: true

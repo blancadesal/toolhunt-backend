@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from tortoise.contrib.fastapi import HTTPNotFoundError
 from tortoise.exceptions import OperationalError
-from tortoise.expressions import Q, F
+from tortoise.expressions import F, Q
 from tortoise.transactions import atomic
 
 from backend.config import get_settings
@@ -35,13 +35,20 @@ async def get_tasks_from_db(
         if settings.ENVIRONMENT != "dev":
             twenty_four_hours_ago = datetime.now() - timedelta(hours=24)
             query = query.filter(
-                Q(last_attempted__isnull=True) | Q(last_attempted__lt=twenty_four_hours_ago)
+                Q(last_attempted__isnull=True)
+                | Q(last_attempted__lt=twenty_four_hours_ago)
             )
 
         # Use `values()` to fetch only necessary fields
         tasks_from_db = await query.values(
-            "id", "field", "last_attempted", "times_attempted",
-            "tool__name", "tool__title", "tool__description", "tool__url"
+            "id",
+            "field",
+            "last_attempted",
+            "times_attempted",
+            "tool__name",
+            "tool__title",
+            "tool__description",
+            "tool__url",
         )
 
         # Randomize and limit the results in Python
@@ -53,8 +60,7 @@ async def get_tasks_from_db(
         # Update last_attempted and times_attempted
         task_ids = [task["id"] for task in tasks_from_db]
         await Task.filter(id__in=task_ids).update(
-            last_attempted=datetime.now(),
-            times_attempted=F("times_attempted") + 1
+            last_attempted=datetime.now(), times_attempted=F("times_attempted") + 1
         )
 
         return [
