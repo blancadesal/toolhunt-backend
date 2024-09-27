@@ -46,6 +46,7 @@ const isSubmitting = ref(false);
 const taskInputs = ref({});
 const isReportModalOpen = ref(false);
 const reportedToolAttributes = ref({});
+const reportSuccessTimeout = ref(null);
 
 // Watchers
 watch(() => currentTaskIndex.value, (newIndex, oldIndex) => {
@@ -208,41 +209,62 @@ const openReportModal = () => {
   isReportModalOpen.value = true;
 };
 
+const closeReportModal = () => {
+  if (reportSuccessTimeout.value) {
+    clearTimeout(reportSuccessTimeout.value);
+  }
+  isReportModalOpen.value = false;
+};
+
 const submitReport = async (attributes) => {
   if (currentTask.value) {
     const toolName = currentTask.value.tool.name;
-    const selectedAttributes = Object.entries(attributes)
+    const currentReportedAttributes = reportedToolAttributes.value[toolName] || {};
+    const updatedAttributes = { ...currentReportedAttributes, ...attributes };
+
+    const selectedAttributes = Object.entries(updatedAttributes)
       .filter(([_, value]) => value)
       .map(([key, _]) => key);
 
-    reportedToolAttributes.value[toolName] = { ...attributes };
+    reportedToolAttributes.value[toolName] = updatedAttributes;
 
     for (const attribute of selectedAttributes) {
-      const submission = {
-        tool: {
-          name: currentTask.value.tool.name,
-          title: currentTask.value.tool.title,
-        },
-        user: {
-          id: authState.value.user.id,
-        },
-        completed_date: new Date().toISOString(),
-        value: true,
-        field: attribute
-      };
+      if (!currentReportedAttributes[attribute]) {
+        const submission = {
+          tool: {
+            name: currentTask.value.tool.name,
+            title: currentTask.value.tool.title,
+          },
+          user: {
+            id: authState.value.user.id,
+          },
+          completed_date: new Date().toISOString(),
+          value: true,
+          field: attribute
+        };
 
-      console.log(`Submitting report for ${attribute}:`, submission);
-      try {
-        await submitTask(currentTask.value.id, submission);
-        console.log(`Report for ${attribute} submitted successfully`);
-      } catch (error) {
-        console.error(`Error submitting report for ${attribute}:`, error);
-        // We might want to show an error message to the user here
+        console.log(`Submitting report for ${attribute}:`, submission);
+        try {
+          await submitTask(currentTask.value.id, submission);
+          console.log(`Report for ${attribute} submitted successfully`);
+        } catch (error) {
+          console.error(`Error submitting report for ${attribute}:`, error);
+          // We might want to show an error message to the user here
+        }
       }
     }
   }
 
-  isReportModalOpen.value = false;
+  // Set a timeout to close the modal after 5 seconds
+  reportSuccessTimeout.value = setTimeout(() => {
+    closeReportModal();
+  }, 3000);
+};
+
+const handleOverlayClick = (event) => {
+  if (event.target === event.currentTarget) {
+    closeReportModal();
+  }
 };
 
 // Expose methods
@@ -293,9 +315,13 @@ defineExpose({ resetSubmittedTasks });
                 {{ currentTask.tool.title }}
               </a>
             </h2>
-            <button @click="openReportModal" class="btn btn-sm" :class="isCurrentToolReported ? 'btn-success' : 'btn-warning'">
-              {{ isCurrentToolReported ? 'Tool Flagged' : 'Flag Tool' }}
-            </button>
+            <div class="flex items-center space-x-2">
+              <div v-if="isCurrentToolReported && reportedToolAttributes[currentTask.tool.name].deprecated" class="badge badge-error">Deprecated</div>
+              <div v-if="isCurrentToolReported && reportedToolAttributes[currentTask.tool.name].experimental" class="badge badge-info">Experimental</div>
+              <button @click="openReportModal" class="btn btn-sm btn-warning">
+                {{ isCurrentToolReported ? 'Update Flags' : 'Flag Tool' }}
+              </button>
+            </div>
           </div>
           <p class="mb-4 text-primary-content">{{ currentTask.tool.description }}</p>
           <div class="flex items-center mb-2 overflow-hidden">
@@ -376,13 +402,14 @@ defineExpose({ resetSubmittedTasks });
     </div>
 
     <!-- Report Tool Modal -->
-    <ReportToolModal
-      :is-open="isReportModalOpen"
-      :tool-name="currentTask?.tool.name"
-      :is-tool-reported="isCurrentToolReported"
-      :reported-attributes="reportedToolAttributes[currentTask?.tool.name]"
-      @close="isReportModalOpen = false"
-      @submit="submitReport"
-    />
+    <div v-if="isReportModalOpen" @click="handleOverlayClick" class="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center">
+      <ReportToolModal
+        :is-open="isReportModalOpen"
+        :tool-name="currentTask?.tool.name"
+        :reported-attributes="reportedToolAttributes[currentTask?.tool.name] || {}"
+        @close="closeReportModal"
+        @submit="submitReport"
+      />
+    </div>
   </div>
 </template>
