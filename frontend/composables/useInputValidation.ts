@@ -2,7 +2,13 @@ import Ajv, { type JSONSchemaType } from 'ajv';
 import addFormats from 'ajv-formats';
 
 export function useInputValidation(fieldSchema: { value: any; }, isArrayType: { value: boolean; }, annotationsSchema: { value: any; }) {
-  const ajv = new Ajv({ allErrors: true, strictSchema: false, strictTypes: false });
+  const ajv = new Ajv({ 
+    allErrors: true, 
+    strictSchema: false, 
+    strictTypes: false,
+    // Add this option to ensure full validation of formats
+    validateFormats: true
+  });
   addFormats(ajv);
 
   const validationError = ref('');
@@ -36,7 +42,7 @@ export function useInputValidation(fieldSchema: { value: any; }, isArrayType: { 
           const patternError = validate.errors?.find(e => e.keyword === 'pattern');
 
           if (formatError) {
-            return { isValid: false, error: `Input must match format "${formatError.params.format}"` };
+            return { isValid: false, error: `Input must be a valid ${formatError.params.format}` };
           } else if (patternError) {
             return { isValid: false, error: `Input must match pattern "${patternError.params.pattern}"` };
           }
