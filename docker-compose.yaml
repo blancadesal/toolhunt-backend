@@ -27,7 +27,7 @@ services:
       - MARIADB_ROOT_PASSWORD=rootpassword
       - MARIADB_DATABASE=web_dev
     volumes:
-      - dbdata:/var/lib/mariadb/data/
+      - dbdata:/var/lib/mysql
     ports:
       - 3306:3306
     healthcheck:
