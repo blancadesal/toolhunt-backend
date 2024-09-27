@@ -318,7 +318,12 @@ defineExpose({ resetSubmittedTasks });
             <div class="flex items-center space-x-2">
               <div v-if="isCurrentToolReported && reportedToolAttributes[currentTask.tool.name].deprecated" class="badge badge-error">Deprecated</div>
               <div v-if="isCurrentToolReported && reportedToolAttributes[currentTask.tool.name].experimental" class="badge badge-info">Experimental</div>
-              <button @click="openReportModal" class="btn btn-sm btn-warning">
+              <button 
+                @click="openReportModal" 
+                class="btn btn-sm btn-warning"
+                :disabled="!isLoggedIn"
+                :title="!isLoggedIn ? 'Please log in to flag tools' : ''"
+              >
                 {{ isCurrentToolReported ? 'Update Flags' : 'Flag Tool' }}
               </button>
             </div>
