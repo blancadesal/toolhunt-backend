@@ -146,9 +146,10 @@ async def get_tasks(
     tool_names: Optional[str] = Query(
         None, description="Comma-separated list of tool names"
     ),
+    limit: int = Query(5, description="Number of tasks to return", ge=1, le=20),
 ):
     tasks = await get_tasks_from_db(
-        field_names=field_names, tool_names=tool_names, randomized=True, limit=10
+        field_names=field_names, tool_names=tool_names, randomized=True, limit=limit
     )
     if not tasks:
         raise HTTPException(status_code=404, detail="No tasks found")

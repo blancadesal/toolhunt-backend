@@ -150,6 +150,7 @@ class ToolhuntApiClient {
     const params = new URLSearchParams()
     if (toolNames) params.append('tool_names', toolNames)
     if (fieldNames) params.append('field_names', fieldNames)
+    params.append('limit', '5')
 
     const response = await this.fetchWithAuth(`/tasks?${params.toString()}`)
     return response.json()
