@@ -45,8 +45,8 @@ class Settings(BaseSettings):
         "experimental": False,
         "for_wikis": False,
         "available_ui_languages": False,
-        "developer_docs_url": False,
-        "user_docs_url": False,
+        "developer_docs_url": True,
+        "user_docs_url": True,
         "feedback_url": False,
         "privacy_policy_url": False,
     }

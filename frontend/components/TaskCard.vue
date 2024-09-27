@@ -86,6 +86,9 @@ const currentUserInput = computed({
   get: () => {
     if (currentTask.value) {
       const input = taskInputs.value[currentTask.value.id];
+      if (['user_docs_url', 'developer_docs_url'].includes(currentTask.value.field)) {
+        return Array.isArray(input) ? input : [];
+      }
       if (isArrayType.value) {
         return Array.isArray(input) ? input : [];
       }
@@ -366,6 +369,15 @@ defineExpose({ resetSubmittedTasks });
               ref="inputRef"
               v-model="currentUserInput"
               :options="fieldInputOptions"
+              :disabled="isCurrentTaskSubmitted"
+              @enter="handleEnterKey"
+            />
+
+            <!-- Use LanguageUrlInput for user_docs_url and developer_docs_url -->
+            <LanguageUrlInput
+              v-else-if="['user_docs_url', 'developer_docs_url'].includes(currentTask.field)"
+              ref="inputRef"
+              v-model="currentUserInput"
               :disabled="isCurrentTaskSubmitted"
               @enter="handleEnterKey"
             />

@@ -81,6 +81,9 @@ export function useFieldSchema(currentTask: ComputedRef<any>, annotationsSchema:
       case 'deprecated':
       case 'experimental':
         return 'checkbox';
+      case 'user_docs_url':
+      case 'developer_docs_url':
+        return 'languageUrl';
       default:
         return 'text';
     }
@@ -101,6 +104,10 @@ export function useFieldSchema(currentTask: ComputedRef<any>, annotationsSchema:
         return 'Enter icon URL (e.g., https://commons.wikimedia.org/wiki/File:some_tool_logo_mini.svg)';
       case 'wikidata_qid':
         return 'Enter wikidata ID (e.g., Q43649390)';
+      case 'user_docs_url':
+        return 'Enter user documentation URL';
+      case 'developer_docs_url':
+        return 'Enter developer documentation URL';
       default:
         return `Enter ${fieldName}`;
     }
