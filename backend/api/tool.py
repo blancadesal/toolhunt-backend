@@ -9,9 +9,9 @@ router = APIRouter(prefix="/tools", tags=["tools"])
 
 @router.get("/names", response_model=ToolNamesResponse)
 async def get_tool_names():
-    """Get the human-readable titles of all tools, and their Toolhub names."""
+    """Get the human-readable titles of all non-deprecated and non-experimental tools, and their Toolhub names."""
     try:
-        tools = await Tool.all().values("name", "title")
+        tools = await Tool.filter(deprecated=False, experimental=False).values("name", "title")
         title_collection = {
             "all_titles": [],
             "titles": {},
