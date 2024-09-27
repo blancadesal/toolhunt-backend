@@ -46,9 +46,9 @@ const toggleAllFields = () => {
   <div class="field-filter w-full flex flex-col">
     <div class="flex gap-2 items-start">
       <button
-         @click="toggleCard"
          class="btn btn-primary w-full"
          type="button"
+         @click="toggleCard"
       >
         {{ activeFields.length > 0 ? `Filter by Annotation (${activeFields.length})` : 'Select Annotations' }}
       </button>
@@ -60,9 +60,9 @@ const toggleAllFields = () => {
         <div class="flex justify-between items-center mb-4">
           <h2 class="card-title text-secondary">Select Annotations</h2>
           <button
-            @click="toggleAllFields"
             class="btn btn-sm btn-secondary"
             type="button"
+            @click="toggleAllFields"
           >
             {{ activeFields.length === fieldNames.length ? 'Clear All' : 'Select All' }}
           </button>
@@ -71,13 +71,13 @@ const toggleAllFields = () => {
           <button
             v-for="field in formattedFieldNames"
             :key="field.value"
-            @click="toggleField(field.value)"
             type="button"
             class="cursor-pointer p-2 rounded-lg transition-colors duration-200 ease-in-out select-none w-full text-left"
             :class="{
               'bg-primary text-primary-content': activeFields.includes(field.value),
               'hover:bg-primary hover:bg-opacity-20': !activeFields.includes(field.value)
             }"
+            @click="toggleField(field.value)"
           >
             {{ field.label }}
           </button>

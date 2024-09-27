@@ -67,7 +67,7 @@ const toggleCard = () => {
 <template>
   <div class="tool-filter w-full flex flex-col">
     <div class="flex gap-2 items-start">
-      <button @click="toggleCard" class="btn btn-primary w-full">
+      <button class="btn btn-primary w-full" @click="toggleCard">
         {{ activeTools.length > 0 ? `Filter by Tool (${activeTools.length})` : 'Select Tools' }}
       </button>
     </div>
@@ -84,21 +84,22 @@ const toggleCard = () => {
                 type="text"
                 placeholder="Search for tools..."
                 class="input input-bordered input-primary w-full"
+                tabindex="0"
                 @input="performSearch"
                 @keydown.down.prevent="navigateResults('down')"
                 @keydown.up.prevent="navigateResults('up')"
                 @keydown.enter.prevent="selectResult"
-                tabindex="0"
-              />
-              <ul v-if="searchResults.length"
+              >
+              <ul
+v-if="searchResults.length"
                   class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full mt-1 absolute z-10">
                 <li v-for="(result, index) in searchResults" :key="result.item" class="w-full">
                   <button
-                    @click="selectResult(index)"
                     :class="{ 'bg-accent text-accent-content': index === selectedIndex }"
                     class="w-full text-left whitespace-normal p-2"
                     :aria-selected="index === selectedIndex"
                     type="button"
+                    @click="selectResult(index)"
                   >
                     {{ result.item }}
                   </button>
@@ -109,7 +110,7 @@ const toggleCard = () => {
           <div>
             <div v-for="tool in activeTools" :key="tool" class="badge badge-secondary badge-lg mr-2 mb-2">
               {{ tool }}
-              <button @click="() => emit('updateFilters', activeTools.filter(t => t !== tool))" class="ml-2 text-xs">✕</button>
+              <button class="ml-2 text-xs" @click="() => emit('updateFilters', activeTools.filter(t => t !== tool))">✕</button>
             </div>
           </div>
         </div>

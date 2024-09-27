@@ -2,7 +2,10 @@
 
 const props = defineProps({
   isOpen: Boolean,
-  toolName: String,
+  toolName: {
+    type: String,
+    default: ''
+  },
   reportedAttributes: {
     type: Object,
     default: () => ({})
@@ -72,11 +75,11 @@ const tooltips = {
         <div class="form-control">
           <label class="label cursor-pointer justify-start items-center">
             <input
-              type="checkbox"
               v-model="reportAttributes.deprecated"
+              type="checkbox"
               class="checkbox checkbox-warning"
               :disabled="props.reportedAttributes.deprecated"
-            />
+            >
             <span class="label-text ml-2 flex-grow">
               Deprecated
               <div class="dropdown dropdown-hover dropdown-right inline-block ml-1">
@@ -93,11 +96,11 @@ const tooltips = {
         <div class="form-control">
           <label class="label cursor-pointer justify-start items-center">
             <input
-              type="checkbox"
               v-model="reportAttributes.experimental"
+              type="checkbox"
               class="checkbox checkbox-warning"
               :disabled="props.reportedAttributes.experimental"
-            />
+            >
             <span class="label-text ml-2 flex-grow">
               Experimental
               <div class="dropdown dropdown-hover dropdown-right inline-block ml-1">
@@ -112,11 +115,11 @@ const tooltips = {
           </label>
         </div>
         <div class="modal-action">
-          <button @click="closeModal" class="btn btn-ghost">Cancel</button>
+          <button class="btn btn-ghost" @click="closeModal">Cancel</button>
           <button
-            @click="submitReport"
             class="btn btn-warning"
             :disabled="isSubmitDisabled"
+            @click="submitReport"
           >
             Submit
           </button>
@@ -125,8 +128,8 @@ const tooltips = {
       <div v-else-if="showConfirmation" class="text-left">
         <p class="mb-4">Are you sure you want to flag this tool? This action cannot be undone and will remove this tool from future task batches.</p>
         <div class="flex justify-center space-x-4">
-          <button @click="showConfirmation = false" class="btn btn-ghost">Cancel</button>
-          <button @click="confirmSubmit" class="btn btn-warning">Confirm</button>
+          <button class="btn btn-ghost" @click="showConfirmation = false">Cancel</button>
+          <button class="btn btn-warning" @click="confirmSubmit">Confirm</button>
         </div>
       </div>
       <div v-else-if="showSuccess" class="text-center">
@@ -137,7 +140,7 @@ const tooltips = {
             <div class="text-xs">Thank you for your feedback. The tool has been flagged and will be removed from future batches.</div>
           </div>
         </div>
-        <button @click="closeModal" class="btn btn-primary mt-4">Dismiss</button>
+        <button class="btn btn-primary mt-4" @click="closeModal">Dismiss</button>
       </div>
     </div>
   </div>

@@ -58,7 +58,7 @@ onMounted(async () => {
   <div class="flex flex-col min-h-screen py-12">
     <div class="container mx-auto px-4 sm:max-w-5xl">
       <div v-if="loadingContributions" class="flex justify-center">
-        <span class="loading loading-spinner loading-lg"></span>
+        <span class="loading loading-spinner loading-lg"/>
       </div>
       <div v-else>
         <div v-if="isLoggedIn">
@@ -77,7 +77,7 @@ onMounted(async () => {
             </div>
             <div class="card-body pt-4 px-2 sm:px-6">
               <div v-if="loadingContributions" class="flex justify-center">
-                <span class="loading loading-spinner loading-lg"></span>
+                <span class="loading loading-spinner loading-lg"/>
               </div>
               <div v-else-if="contributionsError" class="alert alert-error">
                 {{ contributionsError }}
@@ -105,16 +105,16 @@ onMounted(async () => {
                   <div class="flex items-center space-x-3 sm:hidden w-full justify-center">
                     <button
                       class="btn btn-xs btn-outline btn-secondary px-2"
-                      @click="changePage(currentPage - 1)"
                       :disabled="currentPage === 1"
+                      @click="changePage(currentPage - 1)"
                     >
                       &lt;
                     </button>
                     <span class="text-sm">Page {{ currentPage }} of {{ totalPages }}</span>
                     <button
                       class="btn btn-xs btn-outline btn-secondary px-2"
-                      @click="changePage(currentPage + 1)"
                       :disabled="currentPage === totalPages"
+                      @click="changePage(currentPage + 1)"
                     >
                       &gt;
                     </button>
@@ -123,38 +123,38 @@ onMounted(async () => {
                   <div class="hidden sm:flex items-center space-x-1">
                     <button
                       class="btn btn-xs btn-outline btn-secondary px-2"
-                      @click="changePage(1)"
                       :disabled="currentPage === 1"
+                      @click="changePage(1)"
                     >
                       First
                     </button>
                     <button
                       class="btn btn-xs btn-outline btn-secondary px-2"
-                      @click="changePage(currentPage - 1)"
                       :disabled="currentPage === 1"
+                      @click="changePage(currentPage - 1)"
                     >
                       &lt;
                     </button>
                     <button
                       v-for="page in pageRange"
                       :key="page"
-                      @click="changePage(page)"
                       class="btn btn-xs btn-outline btn-secondary px-2"
                       :class="{ 'btn-active': page === currentPage }"
+                      @click="changePage(page)"
                     >
                       {{ page }}
                     </button>
                     <button
                       class="btn btn-xs btn-outline btn-secondary px-2"
-                      @click="changePage(currentPage + 1)"
                       :disabled="currentPage === totalPages"
+                      @click="changePage(currentPage + 1)"
                     >
                       &gt;
                     </button>
                     <button
                       class="btn btn-xs btn-outline btn-secondary px-2"
-                      @click="changePage(totalPages)"
                       :disabled="currentPage === totalPages"
+                      @click="changePage(totalPages)"
                     >
                       Last
                     </button>

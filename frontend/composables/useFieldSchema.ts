@@ -1,4 +1,4 @@
-import { type Schema } from 'ajv';
+import type { Schema } from 'ajv';
 
 interface FieldSchemaInfo {
   fieldSchema: ComputedRef<Schema | null>;
@@ -9,7 +9,7 @@ interface FieldSchemaInfo {
   placeholder: ComputedRef<string>;
 }
 
-export function useFieldSchema(currentTask: ComputedRef<any>, annotationsSchema: ComputedRef<any>): FieldSchemaInfo {
+export function useFieldSchema(currentTask: ComputedRef<Task>, annotationsSchema: ComputedRef<AnnotationsSchema>): FieldSchemaInfo {
   const fieldSchema = computed(() => {
     const fieldName = currentTask.value?.field;
     const fieldProperties = annotationsSchema.value?.schemas?.Annotations?.properties?.[fieldName];

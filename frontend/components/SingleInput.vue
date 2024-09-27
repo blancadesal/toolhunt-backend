@@ -58,21 +58,21 @@ defineExpose({ focus });
     ref="inputRef"
     :type="type"
     :value="inputValue"
-    @input="updateValue"
-    @keydown="handleKeydown"
     :placeholder="placeholder"
     :disabled="disabled"
     class="input input-bordered w-full"
-  />
+    @input="updateValue"
+    @keydown="handleKeydown"
+  >
   <label v-else class="cursor-pointer label">
     <span class="label-text">{{ placeholder }}</span>
     <input
       ref="inputRef"
       type="checkbox"
       :checked="inputValue"
-      @change="updateValue"
       :disabled="disabled"
       class="checkbox checkbox-primary"
-    />
+      @change="updateValue"
+    >
   </label>
 </template>

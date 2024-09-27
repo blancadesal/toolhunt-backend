@@ -1,7 +1,4 @@
 // composables/useToolhuntApi.ts
-
-import { ref } from 'vue'
-import type { Ref } from 'vue'
 import { toolhuntApi } from '~/utils/ToolhuntApiClient'
 import type { Task, AnnotationsSchema, ContributionsResponse, ContributionsParams, UserContributionsResponse, ToolNamesResponse, TaskSubmission } from '~/utils/ToolhuntApiClient'
 

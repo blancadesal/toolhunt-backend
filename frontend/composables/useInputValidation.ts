@@ -1,7 +1,7 @@
 import Ajv, { type JSONSchemaType } from 'ajv';
 import addFormats from 'ajv-formats';
 
-export function useInputValidation(fieldSchema: { value: any; }, isArrayType: { value: boolean; }, annotationsSchema: { value: any; }) {
+export function useInputValidation(fieldSchema: Ref<JSONSchemaType<unknown>>, isArrayType: Ref<boolean>, annotationsSchema: Ref<AnnotationsSchema>) {
   const ajv = new Ajv({ 
     allErrors: true, 
     strictSchema: false, 
@@ -23,7 +23,7 @@ export function useInputValidation(fieldSchema: { value: any; }, isArrayType: { 
             if (typeof schema === 'object' && schema !== null) {
               try {
                 ajv.addSchema(schema as JSONSchemaType<unknown>, `#/schemas/${key}`);
-              } catch (e) {
+              } catch {
                 console.warn(`Schema for ${key} already exists, skipping...`);
               }
             }

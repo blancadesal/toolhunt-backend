@@ -1,8 +1,10 @@
-export function useTaskNavigation(tasks: Ref<any[]>) {
+import type { Task } from '~/utils/ToolhuntApiClient';
+
+export function useTaskNavigation(tasks: Ref<Task[]>) {
   const currentTaskIndex = ref(0);
   const isTaskChanging = ref(false);
 
-  const currentTask: ComputedRef<any | null> = computed(() => tasks.value[currentTaskIndex.value] || null);
+  const currentTask: ComputedRef<Task | null> = computed(() => tasks.value[currentTaskIndex.value] || null);
   const isFirstTask: ComputedRef<boolean> = computed(() => currentTaskIndex.value === 0);
   const isLastTask: ComputedRef<boolean> = computed(() => currentTaskIndex.value === tasks.value.length - 1);
 

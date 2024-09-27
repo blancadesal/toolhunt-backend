@@ -54,10 +54,10 @@ defineExpose({ focus });
   <select
     ref="selectRef"
     :value="selectedValue"
-    @input="updateValue"
-    @keydown="handleKeydown"
     class="select select-bordered w-full"
     :disabled="disabled"
+    @input="updateValue"
+    @keydown="handleKeydown"
   >
     <option disabled value="">{{ placeholder }}</option>
     <option v-for="option in options" :key="option.value" :value="option.value">

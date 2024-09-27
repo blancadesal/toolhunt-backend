@@ -59,15 +59,15 @@ defineExpose({ focus });
   >
     <div v-for="(option, index) in options" :key="option.value" class="flex items-center">
       <input
-        :ref="index === 0 ? (el) => { firstCheckboxRef = el } : undefined"
         :id="`checkbox-${option.value}`"
+        :ref="index === 0 ? (el) => { firstCheckboxRef = el } : undefined"
         type="checkbox"
         :value="option.value"
         :checked="selectedValues.includes(option.value)"
-        @change="updateValue(option)"
         class="checkbox checkbox-primary border-2 mr-2"
         :disabled="disabled"
-      />
+        @change="updateValue(option)"
+      >
       <label :for="`checkbox-${option.value}`" class="cursor-pointer">{{ option.label }}</label>
     </div>
   </div>

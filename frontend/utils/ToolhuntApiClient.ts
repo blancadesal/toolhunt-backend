@@ -1,5 +1,5 @@
 // utils/ToolhuntApiClient.ts
-
+import type { JSONSchemaType } from 'ajv';
 export interface User {
   id: string
   username: string
@@ -19,12 +19,9 @@ export interface Task {
 }
 
 export interface AnnotationsSchema {
-  schemas: {
-    Annotations: {
-      properties: Record<string, any>;
-    };
-    [key: string]: any;
-  };
+  schemas: Record<string, JSONSchemaType<{
+    properties: Record<string, JSONSchemaType<unknown>>;
+  }>>;
   // Add other schema properties as needed
 }
 

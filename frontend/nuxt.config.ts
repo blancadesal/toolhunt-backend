@@ -7,5 +7,5 @@ export default defineNuxtConfig({
       apiBase: 'http://localhost:8082'
     }
   },
-  modules: ['@nuxtjs/tailwindcss'],
+  modules: ['@nuxtjs/tailwindcss', '@nuxt/eslint'],
 })

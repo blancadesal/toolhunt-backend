@@ -26,10 +26,10 @@ const loadNewBatch = async () => {
     taskCardRef.value.resetSubmittedTasks()
   }
 
-  let toolFilter = activeFilters.value.tools.length > 0
+  const toolFilter = activeFilters.value.tools.length > 0
     ? activeFilters.value.tools.map(tool => toolNames.value?.titles[tool] || '').join(',')
     : null
-  let fieldFilter = activeFilters.value.fields.length > 0
+  const fieldFilter = activeFilters.value.fields.length > 0
     ? activeFilters.value.fields.join(',')
     : null
 
@@ -105,8 +105,8 @@ onMounted(async () => {
           <FieldFilter
             :field-names="fieldNames"
             :active-fields="selectedFilters.fields"
-            @update-filters="filters => updateSelectedFilters('fields', filters)"
             class="flex-grow"
+            @update-filters="filters => updateSelectedFilters('fields', filters)"
           />
         </div>
 
@@ -115,8 +115,8 @@ onMounted(async () => {
           <ToolFilter
             :tools="toolNames?.all_titles || []"
             :active-tools="selectedFilters.tools"
-            @update-filters="filters => updateSelectedFilters('tools', filters)"
             class="flex-grow"
+            @update-filters="filters => updateSelectedFilters('tools', filters)"
           />
         </div>
       </div>
@@ -128,17 +128,17 @@ onMounted(async () => {
           <div class="flex gap-2">
             <button
               type="button"
-              @click="applyFilters"
               class="btn btn-primary btn-sm"
               :disabled="!isFiltersDirty || isApplyingFilters"
+              @click="applyFilters"
             >
               {{ isApplyingFilters ? 'Applying...' : 'Apply Filters' }}
             </button>
             <button
               type="button"
-              @click="clearAllFilters"
               class="btn btn-secondary btn-sm"
               :disabled="!hasSelectedFilters && !hasActiveFilters"
+              @click="clearAllFilters"
             >
               Clear All Filters
             </button>
@@ -158,8 +158,8 @@ onMounted(async () => {
             Annotation: {{ toHumanReadable(field) }}
             <button
               v-if="selectedFilters.fields.includes(field)"
-              @click="removeSelectedFilter('fields', field)"
               class="ml-2 text-xs"
+              @click="removeSelectedFilter('fields', field)"
             >
               ✕
             </button>
@@ -177,8 +177,8 @@ onMounted(async () => {
             Tool: {{ tool }}
             <button
               v-if="selectedFilters.tools.includes(tool)"
-              @click="removeSelectedFilter('tools', tool)"
               class="ml-2 text-xs"
+              @click="removeSelectedFilter('tools', tool)"
             >
               ✕
             </button>
@@ -204,10 +204,10 @@ onMounted(async () => {
       :tasks="tasks"
       :current-task-index="currentTaskIndex"
       :annotations-schema="annotationsSchema"
+      class="w-full max-w-7xl"
       @update:current-task-index="currentTaskIndex = $event"
       @load-new-batch="loadNewBatch"
       @report-submitted="handleReportSubmitted"
-      class="w-full max-w-7xl"
     />
   </div>
 </template>

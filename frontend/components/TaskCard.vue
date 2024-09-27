@@ -1,8 +1,14 @@
 <script setup>
 // Props and emits
 const props = defineProps({
-  tasks: Array,
-  annotationsSchema: Object,
+  tasks: {
+    type: Array,
+    default: () => []
+  },
+  annotationsSchema: {
+    type: Object,
+    default: () => ({})
+  },
 });
 
 const emit = defineEmits(['load-new-batch', 'report-submitted']);
@@ -329,10 +335,10 @@ defineExpose({ resetSubmittedTasks });
               </div>
               <button 
                 v-if="shouldShowFlagButton"
-                @click="openReportModal" 
-                class="btn btn-sm btn-warning whitespace-nowrap"
+                class="btn btn-sm btn-warning whitespace-nowrap" 
                 :disabled="!isLoggedIn"
                 :title="!isLoggedIn ? 'Please log in to flag tools' : ''"
+                @click="openReportModal"
               >
                 {{ isCurrentToolReported ? 'Update Flags' : 'Flag Tool' }}
               </button>
@@ -403,21 +409,21 @@ defineExpose({ resetSubmittedTasks });
         <div class="card-actions justify-end mt-4">
           <button
             v-if="!isFirstTask"
-            @click="navigateTask('previous', () => {})"
             class="btn btn-outline mr-2"
+            @click="navigateTask('previous', () => {})"
           >
             &lt; Previous
           </button>
           <button
-            @click="submitContribution"
             class="btn btn-primary mr-2"
             :disabled="isSubmitDisabled"
+            @click="submitContribution"
           >
             {{ isCurrentTaskSubmitted ? 'Submitted' : (isLoggedIn ? 'Submit' : 'Login to Submit') }}
           </button>
           <button
-            @click="navigateTask('next', () => $emit('load-new-batch'))"
             class="btn btn-outline btn-secondary"
+            @click="navigateTask('next', () => $emit('load-new-batch'))"
           >
             {{ isLastTask ? 'New Batch' : 'Next' }} &gt;
           </button>
@@ -426,7 +432,7 @@ defineExpose({ resetSubmittedTasks });
     </div>
 
     <!-- Report Tool Modal -->
-    <div v-if="isReportModalOpen" @click="handleOverlayClick" class="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center">
+    <div v-if="isReportModalOpen" class="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center" @click="handleOverlayClick">
       <ReportToolModal
         :is-open="isReportModalOpen"
         :tool-name="currentTask?.tool.name"

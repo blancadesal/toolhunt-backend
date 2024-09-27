@@ -30,7 +30,7 @@ onMounted(async () => {
       <h1 class="text-3xl font-bold mb-8 text-center">Toolhunt Leaderboard</h1>
 
       <div v-if="loading" class="flex justify-center">
-        <span class="loading loading-spinner loading-lg"></span>
+        <span class="loading loading-spinner loading-lg"/>
       </div>
       <div v-else>
         <!-- Top Hunters from the Last 30 Days -->

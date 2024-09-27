@@ -6,10 +6,13 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
+	"lint": "eslint .",
+	"lint:fix": "eslint . --fix",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@nuxt/eslint": "^0.5.7",
     "@nuxtjs/tailwindcss": "^6.12.1",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
@@ -21,6 +24,7 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",
-    "daisyui": "^4.12.10"
+    "daisyui": "^4.12.10",
+    "typescript": "^5.6.0"
   }
 }
