@@ -123,6 +123,12 @@ const isCurrentToolReported = computed(() => {
   return !!(currentTask.value && reportedToolAttributes.value[currentTask.value.tool.name]);
 });
 
+const shouldShowFlagButton = computed(() => {
+  if (!currentTask.value || !isCurrentToolReported.value) return true;
+  const toolAttributes = reportedToolAttributes.value[currentTask.value.tool.name];
+  return !(toolAttributes && toolAttributes.deprecated && toolAttributes.experimental);
+});
+
 // Methods
 const handleEnterKey = (event) => {
   if (event.key === 'Enter' && !event.shiftKey) {
@@ -322,6 +328,7 @@ defineExpose({ resetSubmittedTasks });
               <div v-if="isCurrentToolReported && reportedToolAttributes[currentTask.tool.name].deprecated" class="badge badge-error">Deprecated</div>
               <div v-if="isCurrentToolReported && reportedToolAttributes[currentTask.tool.name].experimental" class="badge badge-info">Experimental</div>
               <button 
+                v-if="shouldShowFlagButton"
                 @click="openReportModal" 
                 class="btn btn-sm btn-warning"
                 :disabled="!isLoggedIn"
