@@ -1,5 +1,6 @@
 // utils/ToolhuntApiClient.ts
-import type { JSONSchemaType } from 'ajv';
+import type { JSONSchemaType } from 'ajv'
+
 export interface User {
   id: string
   username: string
@@ -8,65 +9,65 @@ export interface User {
 }
 
 export interface Task {
-  id: string;
-  field: string;
+  id: string
+  field: string
   tool: {
-    title: string;
-    description: string;
-    url: string;
-  };
+    title: string
+    description: string
+    url: string
+  }
   // Add other task properties as needed
 }
 
 export interface AnnotationsSchema {
   schemas: Record<string, JSONSchemaType<{
-    properties: Record<string, JSONSchemaType<unknown>>;
-  }>>;
+    properties: Record<string, JSONSchemaType<unknown>>
+  }>>
   // Add other schema properties as needed
 }
 
 export interface ContributionData {
-  rank: number;
-  username: string;
-  contributions: number;
+  rank: number
+  username: string
+  contributions: number
 }
 
 export interface ContributionsResponse {
-  contributions: ContributionData[];
+  contributions: ContributionData[]
 }
 
 export interface ContributionsParams {
-  days?: number;
-  limit?: number;
+  days?: number
+  limit?: number
 }
 
 export interface UserContribution {
-  date: string;
-  tool_title: string;
-  field: string;
+  date: string
+  tool_title: string
+  field: string
 }
 
 export interface UserContributionsResponse {
-  contributions: UserContribution[];
-  total_contributions: number;
+  contributions: UserContribution[]
+  total_contributions: number
 }
 
 export interface TaskSubmission {
   tool: {
-    name: string;
-    title: string;
-  };
+    name: string
+    title: string
+  }
   user: {
-    id: string;
-  };
-  completed_date: string;
-  value: boolean | string | string[]; // Can be boolean for reports, or string/string[] for regular tasks
-  field?: 'deprecated' | 'experimental'; // Optional field for report submissions
+    id: string
+  }
+  completed_date: string
+  value: boolean | string | string[] // Can be boolean for reports, or string/string[] for regular tasks
+  field?: 'deprecated' | 'experimental' // Optional field for report submissions
 }
 
 export interface ToolNamesResponse {
-  all_titles: string[];
-  titles: Record<string, string>;
+  all_titles: string[]
+  titles: Record<string, string>
 }
 
 const API_BASE_URL = 'http://localhost:8082/api/v1'
@@ -93,15 +94,17 @@ class ToolhuntApiClient {
   async fetchUserData(): Promise<User | null> {
     try {
       const response = await fetch(`${API_BASE_URL}/user`, {
-        credentials: 'include'
+        credentials: 'include',
       })
       if (response.ok) {
         return await response.json()
-      } else {
+      }
+      else {
         console.error(`Failed to fetch user data: ${response.status}`)
         return null
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error fetching user data:', error)
       return null
     }
@@ -112,22 +115,23 @@ class ToolhuntApiClient {
     window.location.href = loginUrl
   }
 
-  async handleCallback(code: string, state: string): Promise<{ user: User; redirectTo: string }> {
+  async handleCallback(code: string, state: string): Promise<{ user: User, redirectTo: string }> {
     const response = await fetch(`${API_BASE_URL}/auth/callback`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ code, state }),
-      credentials: 'include'
+      credentials: 'include',
     })
     if (response.ok) {
       const data = await response.json()
       return {
         user: data.user,
-        redirectTo: data.redirect_to
+        redirectTo: data.redirect_to,
       }
-    } else {
+    }
+    else {
       throw new Error(`Login failed: ${response.status}`)
     }
   }
@@ -135,7 +139,7 @@ class ToolhuntApiClient {
   async logout(): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/auth/logout`, {
       method: 'POST',
-      credentials: 'include'
+      credentials: 'include',
     })
     if (!response.ok) {
       throw new Error(`Logout failed: ${response.status}`)
@@ -164,41 +168,41 @@ class ToolhuntApiClient {
   }
 
   async fetchContributions(params?: ContributionsParams): Promise<ContributionsResponse> {
-    let url = '/metrics/contributions';
+    let url = '/metrics/contributions'
     if (params) {
-      const queryParams = new URLSearchParams();
-      if (params.days !== undefined) queryParams.append('days', params.days.toString());
-      if (params.limit !== undefined) queryParams.append('limit', params.limit.toString());
-      url += `?${queryParams.toString()}`;
+      const queryParams = new URLSearchParams()
+      if (params.days !== undefined) queryParams.append('days', params.days.toString())
+      if (params.limit !== undefined) queryParams.append('limit', params.limit.toString())
+      url += `?${queryParams.toString()}`
     }
-    const response = await this.fetchWithAuth(url);
-    return response.json();
+    const response = await this.fetchWithAuth(url)
+    return response.json()
   }
 
   async fetchUserContributions(username: string, limit?: number): Promise<UserContributionsResponse> {
-    let url = `/metrics/contributions/${encodeURIComponent(username)}`;
+    let url = `/metrics/contributions/${encodeURIComponent(username)}`
     if (limit !== undefined) {
-      url += `?limit=${limit}`;
+      url += `?limit=${limit}`
     }
-    const response = await this.fetchWithAuth(url);
-    return response.json();
+    const response = await this.fetchWithAuth(url)
+    return response.json()
   }
 
   async submitTask(taskId: number, submission: TaskSubmission): Promise<void> {
     const response = await this.fetchWithAuth(`/tasks/${taskId}/submit`, {
       method: 'POST',
       body: JSON.stringify(submission),
-    });
+    })
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || 'Failed to submit task');
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Failed to submit task')
     }
   }
 
   async fetchToolNames(): Promise<ToolNamesResponse> {
-    const response = await this.fetchWithAuth('/tools/names');
-    return response.json();
+    const response = await this.fetchWithAuth('/tools/names')
+    return response.json()
   }
 }
 

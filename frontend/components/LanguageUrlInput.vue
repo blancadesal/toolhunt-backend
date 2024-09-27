@@ -1,59 +1,64 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue'
 
 const props = defineProps({
   modelValue: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
-  disabled: Boolean
-});
+  disabled: Boolean,
+})
 
-const emit = defineEmits(['update:modelValue', 'enter']);
+const emit = defineEmits(['update:modelValue', 'enter'])
 
-const languageUrlPairs = ref([{ language: '', url: '' }]);
+const languageUrlPairs = ref([{ language: '', url: '' }])
 
 onMounted(() => {
   if (props.modelValue.length) {
-    languageUrlPairs.value = props.modelValue;
+    languageUrlPairs.value = props.modelValue
   }
-});
+})
 
 watch(() => props.modelValue, (newValue) => {
   if (newValue.length) {
-    languageUrlPairs.value = newValue;
-  } else if (languageUrlPairs.value.length === 0) {
-    languageUrlPairs.value = [{ language: '', url: '' }];
+    languageUrlPairs.value = newValue
   }
-}, { deep: true });
+  else if (languageUrlPairs.value.length === 0) {
+    languageUrlPairs.value = [{ language: '', url: '' }]
+  }
+}, { deep: true })
 
 const updateModelValue = () => {
-  emit('update:modelValue', languageUrlPairs.value.filter(pair => pair.language || pair.url));
-};
+  emit('update:modelValue', languageUrlPairs.value.filter(pair => pair.language || pair.url))
+}
 
 const addPair = () => {
-  languageUrlPairs.value.push({ language: '', url: '' });
-  updateModelValue();
-};
+  languageUrlPairs.value.push({ language: '', url: '' })
+  updateModelValue()
+}
 
 const removePair = (index) => {
   if (languageUrlPairs.value.length > 1) {
-    languageUrlPairs.value.splice(index, 1);
-    updateModelValue();
+    languageUrlPairs.value.splice(index, 1)
+    updateModelValue()
   }
-};
+}
 
 const handleKeydown = (event) => {
   if (event.key === 'Enter') {
-    event.preventDefault();
-    emit('enter', event);
+    event.preventDefault()
+    emit('enter', event)
   }
-};
+}
 </script>
 
 <template>
   <div>
-    <div v-for="(pair, index) in languageUrlPairs" :key="index" class="flex mb-2 items-center">
+    <div
+      v-for="(pair, index) in languageUrlPairs"
+      :key="index"
+      class="flex mb-2 items-center"
+    >
       <input
         :value="pair.language"
         type="text"
@@ -79,12 +84,27 @@ const handleKeydown = (event) => {
         title="Remove"
         @click="removePair(index)"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-5 h-5"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M6 18L18 6M6 6l12 12"
+          />
         </svg>
       </button>
     </div>
-    <button class="btn btn-outline btn-sm mt-2" :disabled="disabled" @click="addPair">
+    <button
+      class="btn btn-outline btn-sm mt-2"
+      :disabled="disabled"
+      @click="addPair"
+    >
       Add Language
     </button>
   </div>

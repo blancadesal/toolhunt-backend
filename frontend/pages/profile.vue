@@ -14,7 +14,7 @@ const paginatedContributions = computed(() => {
 })
 
 const totalPages = computed(() =>
-  Math.ceil(userContributions.value.contributions.length / itemsPerPage)
+  Math.ceil(userContributions.value.contributions.length / itemsPerPage),
 )
 
 const changePage = (newPage) => {
@@ -35,7 +35,8 @@ const fetchContributions = async () => {
   loadingContributions.value = true
   try {
     await fetchUserContributions(authState.value.user.username)
-  } finally {
+  }
+  finally {
     loadingContributions.value = false
   }
 }
@@ -57,14 +58,19 @@ onMounted(async () => {
 <template>
   <div class="flex flex-col min-h-screen py-12">
     <div class="container mx-auto px-4 sm:max-w-5xl">
-      <div v-if="loadingContributions" class="flex justify-center">
-        <span class="loading loading-spinner loading-lg"/>
+      <div
+        v-if="loadingContributions"
+        class="flex justify-center"
+      >
+        <span class="loading loading-spinner loading-lg" />
       </div>
       <div v-else>
         <div v-if="isLoggedIn">
           <!-- Welcome and Total Contributions Section -->
           <div class="text-center mb-8">
-            <h2 class="text-3xl font-bold mb-2">Welcome, <span class="text-accent">{{ authState.user.username }}</span>!</h2>
+            <h2 class="text-3xl font-bold mb-2">
+              Welcome, <span class="text-accent">{{ authState.user.username }}</span>!
+            </h2>
             <p class="text-lg">
               Total Contributions: <span class="font-bold text-accent">{{ totalContributions }}</span>
             </p>
@@ -73,29 +79,55 @@ onMounted(async () => {
           <!-- Latest Activity Section -->
           <div class="card bg-base-100 shadow-xl">
             <div class="bg-secondary text-secondary-content p-4 pl-6 sm:pl-10 rounded-t-xl">
-              <h2 class="text-2xl font-bold">Latest Activity</h2>
+              <h2 class="text-2xl font-bold">
+                Latest Activity
+              </h2>
             </div>
             <div class="card-body pt-4 px-2 sm:px-6">
-              <div v-if="loadingContributions" class="flex justify-center">
-                <span class="loading loading-spinner loading-lg"/>
+              <div
+                v-if="loadingContributions"
+                class="flex justify-center"
+              >
+                <span class="loading loading-spinner loading-lg" />
               </div>
-              <div v-else-if="contributionsError" class="alert alert-error">
+              <div
+                v-else-if="contributionsError"
+                class="alert alert-error"
+              >
                 {{ contributionsError }}
               </div>
-              <div v-else-if="userContributions.contributions.length > 0" class="overflow-x-auto">
+              <div
+                v-else-if="userContributions.contributions.length > 0"
+                class="overflow-x-auto"
+              >
                 <table class="table w-full mb-6">
                   <thead>
                     <tr>
-                      <th class="px-2 sm:px-4">Date</th>
-                      <th class="px-2 sm:px-4">Tool Name</th>
-                      <th class="px-2 sm:px-4">Annotation</th>
+                      <th class="px-2 sm:px-4">
+                        Date
+                      </th>
+                      <th class="px-2 sm:px-4">
+                        Tool Name
+                      </th>
+                      <th class="px-2 sm:px-4">
+                        Annotation
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="contribution in paginatedContributions" :key="contribution.date">
-                      <td class="px-2 sm:px-4 text-xs sm:text-sm">{{ formatDate(contribution.date) }}</td>
-                      <td class="px-2 sm:px-4 text-xs sm:text-sm">{{ contribution.tool_title }}</td>
-                      <td class="px-2 sm:px-4 text-xs sm:text-sm">{{ toHumanReadable(contribution.field) }}</td>
+                    <tr
+                      v-for="contribution in paginatedContributions"
+                      :key="contribution.date"
+                    >
+                      <td class="px-2 sm:px-4 text-xs sm:text-sm">
+                        {{ formatDate(contribution.date) }}
+                      </td>
+                      <td class="px-2 sm:px-4 text-xs sm:text-sm">
+                        {{ contribution.tool_title }}
+                      </td>
+                      <td class="px-2 sm:px-4 text-xs sm:text-sm">
+                        {{ toHumanReadable(contribution.field) }}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -161,13 +193,19 @@ onMounted(async () => {
                   </div>
                 </div>
               </div>
-              <div v-else class="text-center text-base-content/70">
+              <div
+                v-else
+                class="text-center text-base-content/70"
+              >
                 No activity found. Start contributing to see your activity here!
               </div>
             </div>
           </div>
         </div>
-        <div v-else class="alert alert-warning mb-8">
+        <div
+          v-else
+          class="alert alert-warning mb-8"
+        >
           Please log in to view your profile.
         </div>
       </div>

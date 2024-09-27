@@ -16,9 +16,10 @@ const getContributions = async (days = undefined, limit = undefined) => {
 onMounted(async () => {
   loading.value = true
   try {
-    topHuntersLastMonth.value = await getContributions(30, 5)  // Top 5 for last 30 days
-    allTimeGreats.value = await getContributions(undefined, 10)  // Top 10 all-time
-  } finally {
+    topHuntersLastMonth.value = await getContributions(30, 5) // Top 5 for last 30 days
+    allTimeGreats.value = await getContributions(undefined, 10) // Top 10 all-time
+  }
+  finally {
     loading.value = false
   }
 })
@@ -27,10 +28,15 @@ onMounted(async () => {
 <template>
   <div class="flex flex-col min-h-screen py-12">
     <div class="container mx-auto px-4 max-w-5xl">
-      <h1 class="text-3xl font-bold mb-8 text-center">Toolhunt Leaderboard</h1>
+      <h1 class="text-3xl font-bold mb-8 text-center">
+        Toolhunt Leaderboard
+      </h1>
 
-      <div v-if="loading" class="flex justify-center">
-        <span class="loading loading-spinner loading-lg"/>
+      <div
+        v-if="loading"
+        class="flex justify-center"
+      >
+        <span class="loading loading-spinner loading-lg" />
       </div>
       <div v-else>
         <!-- Top Hunters from the Last 30 Days -->

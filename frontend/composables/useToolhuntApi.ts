@@ -14,7 +14,8 @@ export function useToolhuntApi() {
   const fetchTasks = async (toolNames: string | null = null, fieldNames: string | null = null): Promise<void> => {
     try {
       tasks.value = await toolhuntApi.fetchTasks(toolNames, fieldNames)
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error fetching tasks:', error)
       tasks.value = []
     }
@@ -23,7 +24,8 @@ export function useToolhuntApi() {
   const fetchFieldNames = async (): Promise<void> => {
     try {
       fieldNames.value = await toolhuntApi.fetchFieldNames()
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error fetching field names:', error)
       fieldNames.value = []
     }
@@ -32,7 +34,8 @@ export function useToolhuntApi() {
   const fetchAnnotationsSchema = async (): Promise<void> => {
     try {
       annotationsSchema.value = await toolhuntApi.fetchAnnotationsSchema()
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error fetching annotations schema:', error)
       annotationsSchema.value = null
     }
@@ -41,7 +44,8 @@ export function useToolhuntApi() {
   const fetchContributions = async (params?: ContributionsParams): Promise<void> => {
     try {
       contributions.value = await toolhuntApi.fetchContributions(params)
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error fetching contributions:', error)
       contributions.value = null
     }
@@ -51,7 +55,8 @@ export function useToolhuntApi() {
     error.value = null
     try {
       userContributions.value = await toolhuntApi.fetchUserContributions(username, limit)
-    } catch (err) {
+    }
+    catch (err) {
       console.error('Error fetching user contributions:', err)
       error.value = err instanceof Error ? err.message : String(err)
       userContributions.value = { contributions: [], total_contributions: 0 }
@@ -61,7 +66,8 @@ export function useToolhuntApi() {
   const fetchToolNames = async (): Promise<void> => {
     try {
       toolNames.value = await toolhuntApi.fetchToolNames()
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error fetching tool names:', error)
       toolNames.value = null
     }
@@ -69,17 +75,18 @@ export function useToolhuntApi() {
 
   const submitTask = async (taskId: number, submission: TaskSubmission): Promise<void> => {
     try {
-      console.log('Submitting task with ID:', taskId);
-      console.log('Submission data:', JSON.stringify(submission, null, 2));
-      await toolhuntApi.submitTask(taskId, submission);
-    } catch (error) {
-      console.error('Error submitting task:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', error.message);
-      }
-      throw error;
+      console.log('Submitting task with ID:', taskId)
+      console.log('Submission data:', JSON.stringify(submission, null, 2))
+      await toolhuntApi.submitTask(taskId, submission)
     }
-  };
+    catch (error) {
+      console.error('Error submitting task:', error)
+      if (error instanceof Error) {
+        console.error('Error details:', error.message)
+      }
+      throw error
+    }
+  }
 
   return {
     tasks,
@@ -95,6 +102,6 @@ export function useToolhuntApi() {
     error,
     submitTask,
     toolNames,
-    fetchToolNames
+    fetchToolNames,
   }
 }

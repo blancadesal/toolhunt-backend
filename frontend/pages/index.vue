@@ -7,12 +7,12 @@ const taskCardRef = ref(null)
 
 const selectedFilters = ref({
   fields: [],
-  tools: []
+  tools: [],
 })
 
 const activeFilters = ref({
   fields: [],
-  tools: []
+  tools: [],
 })
 
 const isApplyingFilters = ref(false)
@@ -78,9 +78,9 @@ const isFiltersDirty = computed(() => {
 })
 
 const handleReportSubmitted = async (toolName) => {
-  console.log(`Tool reported: ${toolName}`);
-  await fetchToolNames();
-};
+  console.log(`Tool reported: ${toolName}`)
+  await fetchToolNames()
+}
 
 onMounted(async () => {
   isLoading.value = true
@@ -88,7 +88,7 @@ onMounted(async () => {
     fetchTasks(),
     fetchFieldNames(),
     fetchAnnotationsSchema(),
-    fetchToolNames()
+    fetchToolNames(),
   ])
   isLoading.value = false
 })
@@ -96,7 +96,9 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col min-h-screen items-center p-4">
-    <h1 class="text-4xl font-bold mt-4 mb-8">Welcome to Toolhunt!</h1>
+    <h1 class="text-4xl font-bold mt-4 mb-8">
+      Welcome to Toolhunt!
+    </h1>
 
     <div class="w-full max-w-7xl mb-8">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -124,7 +126,9 @@ onMounted(async () => {
       <!-- Combined Filters Display -->
       <div class="mt-6 p-4 bg-base-200 rounded-lg shadow-md min-h-[100px] transition-all duration-300">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-lg font-semibold text-secondary">Filters</h2>
+          <h2 class="text-lg font-semibold text-secondary">
+            Filters
+          </h2>
           <div class="flex gap-2">
             <button
               type="button"
@@ -144,7 +148,10 @@ onMounted(async () => {
             </button>
           </div>
         </div>
-        <div v-if="hasSelectedFilters || hasActiveFilters" class="flex flex-wrap gap-2">
+        <div
+          v-if="hasSelectedFilters || hasActiveFilters"
+          class="flex flex-wrap gap-2"
+        >
           <div
             v-for="field in new Set([...selectedFilters.fields, ...activeFilters.fields])"
             :key="field"
@@ -152,7 +159,7 @@ onMounted(async () => {
             :class="{
               'badge-primary': activeFilters.fields.includes(field),
               'badge-outline badge-primary': !activeFilters.fields.includes(field) && selectedFilters.fields.includes(field),
-              'opacity-50': !selectedFilters.fields.includes(field) && activeFilters.fields.includes(field)
+              'opacity-50': !selectedFilters.fields.includes(field) && activeFilters.fields.includes(field),
             }"
           >
             Annotation: {{ toHumanReadable(field) }}
@@ -171,7 +178,7 @@ onMounted(async () => {
             :class="{
               'badge-secondary': activeFilters.tools.includes(tool),
               'badge-outline badge-secondary': !activeFilters.tools.includes(tool) && selectedFilters.tools.includes(tool),
-              'opacity-50': !selectedFilters.tools.includes(tool) && activeFilters.tools.includes(tool)
+              'opacity-50': !selectedFilters.tools.includes(tool) && activeFilters.tools.includes(tool),
             }"
           >
             Tool: {{ tool }}
@@ -184,18 +191,31 @@ onMounted(async () => {
             </button>
           </div>
         </div>
-        <div v-else class="text-gray-500 italic">
+        <div
+          v-else
+          class="text-gray-500 italic"
+        >
           No filters selected. Select filters from above and click 'Apply Filters' to refine your task selection.
         </div>
       </div>
     </div>
 
-    <div v-if="isLoading" class="text-center mt-8">
-      <p class="text-xl">Loading tasks...</p>
+    <div
+      v-if="isLoading"
+      class="text-center mt-8"
+    >
+      <p class="text-xl">
+        Loading tasks...
+      </p>
     </div>
 
-    <div v-else-if="tasks.length === 0" class="text-center mt-8">
-      <p class="text-xl">No tasks available. Try clearing filters or refreshing the page.</p>
+    <div
+      v-else-if="tasks.length === 0"
+      class="text-center mt-8"
+    >
+      <p class="text-xl">
+        No tasks available. Try clearing filters or refreshing the page.
+      </p>
     </div>
 
     <TaskCard

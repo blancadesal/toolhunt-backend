@@ -1,55 +1,56 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   modelValue: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   options: {
     type: Array,
-    required: true
+    required: true,
   },
   disabled: {
     type: Boolean,
-    default: false
-  }
-});
+    default: false,
+  },
+})
 
-const emit = defineEmits(['update:modelValue', 'enter']);
+const emit = defineEmits(['update:modelValue', 'enter'])
 
-const selectedValues = ref(props.modelValue);
+const selectedValues = ref(props.modelValue)
 
 watch(() => props.modelValue, (newValue) => {
-  selectedValues.value = newValue;
-});
+  selectedValues.value = newValue
+})
 
 const updateValue = (option) => {
-  const index = selectedValues.value.indexOf(option.value);
+  const index = selectedValues.value.indexOf(option.value)
   if (index === -1) {
-    selectedValues.value.push(option.value);
-  } else {
-    selectedValues.value.splice(index, 1);
+    selectedValues.value.push(option.value)
   }
-  emit('update:modelValue', selectedValues.value);
-};
+  else {
+    selectedValues.value.splice(index, 1)
+  }
+  emit('update:modelValue', selectedValues.value)
+}
 
 const handleKeydown = (event) => {
   if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    emit('enter', event);
+    event.preventDefault()
+    emit('enter', event)
   }
-};
+}
 
-const firstCheckboxRef = ref(null);
+const firstCheckboxRef = ref(null)
 
 const focus = () => {
   if (firstCheckboxRef.value) {
-    firstCheckboxRef.value.focus();
+    firstCheckboxRef.value.focus()
   }
-};
+}
 
-defineExpose({ focus });
+defineExpose({ focus })
 </script>
 
 <template>
@@ -57,7 +58,11 @@ defineExpose({ focus });
     class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2"
     @keydown="handleKeydown"
   >
-    <div v-for="(option, index) in options" :key="option.value" class="flex items-center">
+    <div
+      v-for="(option, index) in options"
+      :key="option.value"
+      class="flex items-center"
+    >
       <input
         :id="`checkbox-${option.value}`"
         :ref="index === 0 ? (el) => { firstCheckboxRef = el } : undefined"
@@ -68,7 +73,10 @@ defineExpose({ focus });
         :disabled="disabled"
         @change="updateValue(option)"
       >
-      <label :for="`checkbox-${option.value}`" class="cursor-pointer">{{ option.label }}</label>
+      <label
+        :for="`checkbox-${option.value}`"
+        class="cursor-pointer"
+      >{{ option.label }}</label>
     </div>
   </div>
 </template>

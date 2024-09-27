@@ -1,55 +1,55 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   modelValue: {
     type: [String, Boolean, Number],
-    default: ''
+    default: '',
   },
   type: {
     type: String,
-    default: 'text'
+    default: 'text',
   },
   placeholder: {
     type: String,
-    default: ''
+    default: '',
   },
   disabled: {
     type: Boolean,
-    default: false
-  }
-});
+    default: false,
+  },
+})
 
-const emit = defineEmits(['update:modelValue', 'enter']);
+const emit = defineEmits(['update:modelValue', 'enter'])
 
-const inputValue = ref(props.modelValue);
+const inputValue = ref(props.modelValue)
 
 watch(() => props.modelValue, (newValue) => {
-  inputValue.value = newValue;
-});
+  inputValue.value = newValue
+})
 
 const updateValue = (event) => {
-  const value = props.type === 'checkbox' ? event.target.checked : event.target.value;
-  inputValue.value = value;
-  emit('update:modelValue', value);
-};
+  const value = props.type === 'checkbox' ? event.target.checked : event.target.value
+  inputValue.value = value
+  emit('update:modelValue', value)
+}
 
 const handleKeydown = (event) => {
   if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    emit('enter', event);
+    event.preventDefault()
+    emit('enter', event)
   }
-};
+}
 
-const inputRef = ref(null);
+const inputRef = ref(null)
 
 const focus = () => {
   if (inputRef.value) {
-    inputRef.value.focus();
+    inputRef.value.focus()
   }
-};
+}
 
-defineExpose({ focus });
+defineExpose({ focus })
 </script>
 
 <template>
@@ -64,7 +64,10 @@ defineExpose({ focus });
     @input="updateValue"
     @keydown="handleKeydown"
   >
-  <label v-else class="cursor-pointer label">
+  <label
+    v-else
+    class="cursor-pointer label"
+  >
     <span class="label-text">{{ placeholder }}</span>
     <input
       ref="inputRef"

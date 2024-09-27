@@ -12,7 +12,7 @@ export interface AuthState {
 export const useAuth = () => {
   const authState = useState<AuthState>('auth', () => ({
     user: null,
-    loading: false
+    loading: false,
   }))
 
   const isLoggedIn = computed(() => authState.value.user != null)
@@ -21,10 +21,12 @@ export const useAuth = () => {
     authState.value.loading = true
     try {
       authState.value.user = await toolhuntApi.fetchUserData()
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error fetching user data:', error)
       authState.value.user = null
-    } finally {
+    }
+    finally {
       authState.value.loading = false
     }
   }
@@ -40,7 +42,8 @@ export const useAuth = () => {
       const { user, redirectTo } = await toolhuntApi.handleCallback(code, state)
       authState.value.user = user
       return redirectTo
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error during login callback:', error)
       throw error
     }
@@ -50,7 +53,8 @@ export const useAuth = () => {
     try {
       await toolhuntApi.logout()
       authState.value.user = null
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error during logout:', error)
     }
   }
@@ -61,6 +65,6 @@ export const useAuth = () => {
     fetchUserData,
     logout,
     login,
-    handleCallback
+    handleCallback,
   }
 }

@@ -7,10 +7,10 @@
  */
 export const toHumanReadable = (str: string): string => {
   if (str.includes('::')) {
-    return str.split('::').map(part => toHumanReadable(part)).join(' - ');
+    return str.split('::').map(part => toHumanReadable(part)).join(' - ')
   }
   return str
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
+    .join(' ')
+}
