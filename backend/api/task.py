@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from tortoise.contrib.fastapi import HTTPNotFoundError
 from tortoise.exceptions import OperationalError
-from tortoise.expressions import Q
+from tortoise.expressions import Q, F
 from tortoise.transactions import atomic
 
 from backend.config import get_settings
@@ -23,8 +23,55 @@ async def get_tasks_from_db(
     field_names: Optional[str] = None,
     tool_names: Optional[str] = None,
     randomized: bool = True,
-    limit: int = 20,
+    limit: int = 10,
 ) -> list[TaskSchema]:
+    # For unfiltered queries, use a more efficient approach
+    if not field_names and not tool_names:
+        query = Task.filter(
+            tool__deprecated=False,
+            tool__experimental=False,
+        ).prefetch_related("tool")
+
+        if settings.ENVIRONMENT != "dev":
+            twenty_four_hours_ago = datetime.now() - timedelta(hours=24)
+            query = query.filter(
+                Q(last_attempted__isnull=True) | Q(last_attempted__lt=twenty_four_hours_ago)
+            )
+
+        # Use `values()` to fetch only necessary fields
+        tasks_from_db = await query.values(
+            "id", "field", "last_attempted", "times_attempted",
+            "tool__name", "tool__title", "tool__description", "tool__url"
+        )
+
+        # Randomize and limit the results in Python
+        if randomized:
+            tasks_from_db = random.sample(tasks_from_db, min(len(tasks_from_db), limit))
+        else:
+            tasks_from_db = tasks_from_db[:limit]
+
+        # Update last_attempted and times_attempted
+        task_ids = [task["id"] for task in tasks_from_db]
+        await Task.filter(id__in=task_ids).update(
+            last_attempted=datetime.now(),
+            times_attempted=F("times_attempted") + 1
+        )
+
+        return [
+            TaskSchema(
+                id=task["id"],
+                tool=ToolSchema(
+                    name=task["tool__name"],
+                    title=task["tool__title"],
+                    description=task["tool__description"],
+                    url=task["tool__url"],
+                ),
+                field=task["field"],
+            )
+            for task in tasks_from_db
+        ]
+
+    # For filtered queries, use the existing approach
     query = Task.all().prefetch_related("tool")
 
     # Add filter for non-deprecated and non-experimental tools
