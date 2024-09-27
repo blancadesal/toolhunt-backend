@@ -28,7 +28,7 @@ watch(() => props.modelValue, (newValue) => {
 }, { deep: true });
 
 const updateModelValue = () => {
-  emit('update:modelValue', [...languageUrlPairs.value]);
+  emit('update:modelValue', languageUrlPairs.value.filter(pair => pair.language || pair.url));
 };
 
 const addPair = () => {
@@ -43,11 +43,6 @@ const removePair = (index) => {
   }
 };
 
-const updatePair = (index, field, value) => {
-  languageUrlPairs.value[index][field] = value;
-  updateModelValue();
-};
-
 const handleKeydown = (event) => {
   if (event.key === 'Enter') {
     event.preventDefault();
@@ -58,10 +53,10 @@ const handleKeydown = (event) => {
 
 <template>
   <div>
-    <div v-for="(pair, index) in languageUrlPairs" :key="index" class="flex mb-2">
+    <div v-for="(pair, index) in languageUrlPairs" :key="index" class="flex mb-2 items-center">
       <input
         :value="pair.language"
-        @input="(e) => updatePair(index, 'language', e.target.value)"
+        @input="(e) => { pair.language = e.target.value; updateModelValue(); }"
         type="text"
         placeholder="Language (e.g., en)"
         class="input input-bordered w-1/4 mr-2"
@@ -70,7 +65,7 @@ const handleKeydown = (event) => {
       />
       <input
         :value="pair.url"
-        @input="(e) => updatePair(index, 'url', e.target.value)"
+        @input="(e) => { pair.url = e.target.value; updateModelValue(); }"
         type="url"
         placeholder="URL"
         class="input input-bordered flex-1 mr-2"
@@ -80,12 +75,17 @@ const handleKeydown = (event) => {
       <button 
         v-if="languageUrlPairs.length > 1"
         @click="removePair(index)" 
-        class="btn btn-error" 
+        class="btn btn-ghost btn-sm p-1 h-8 w-8 min-h-0 hover:bg-base-200"
         :disabled="disabled"
+        title="Remove"
       >
-        Remove
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
       </button>
     </div>
-    <button @click="addPair" class="btn btn-primary mt-2" :disabled="disabled">Add Language-URL Pair</button>
+    <button @click="addPair" class="btn btn-outline btn-sm mt-2" :disabled="disabled">
+      Add Language
+    </button>
   </div>
 </template>
