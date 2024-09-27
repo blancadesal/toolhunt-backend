@@ -263,11 +263,6 @@ const submitReport = async (attributes) => {
     // Emit an event to signal that a report has been submitted
     emit('report-submitted', currentTask.value.tool.name);
   }
-
-  // Set a timeout to close the modal after 5 seconds
-  reportSuccessTimeout.value = setTimeout(() => {
-    closeReportModal();
-  }, 3000);
 };
 
 const handleOverlayClick = (event) => {
@@ -314,8 +309,8 @@ defineExpose({ resetSubmittedTasks });
 
         <!-- Tool Info Section -->
         <div class="bg-secondary bg-opacity-10 p-4 mb-4 shadow-md rounded-lg">
-          <div class="flex justify-between items-start mb-4">
-            <h2 class="card-title text-primary-content text-2xl">
+          <div class="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
+            <h2 class="card-title text-primary-content text-2xl break-words pr-4">
               <a
                 :href="`https://toolhub.wikimedia.org/tools/${currentTask.tool.name}`"
                 target="_blank"
@@ -324,13 +319,15 @@ defineExpose({ resetSubmittedTasks });
                 {{ currentTask.tool.title }}
               </a>
             </h2>
-            <div class="flex items-center space-x-2">
-              <div v-if="isCurrentToolReported && reportedToolAttributes[currentTask.tool.name].deprecated" class="badge badge-error">Deprecated</div>
-              <div v-if="isCurrentToolReported && reportedToolAttributes[currentTask.tool.name].experimental" class="badge badge-info">Experimental</div>
+            <div class="flex flex-wrap items-center gap-2 justify-end">
+              <div class="flex flex-wrap items-center gap-2">
+                <div v-if="isCurrentToolReported && reportedToolAttributes[currentTask.tool.name].deprecated" class="badge badge-error">Deprecated</div>
+                <div v-if="isCurrentToolReported && reportedToolAttributes[currentTask.tool.name].experimental" class="badge badge-info">Experimental</div>
+              </div>
               <button 
                 v-if="shouldShowFlagButton"
                 @click="openReportModal" 
-                class="btn btn-sm btn-warning"
+                class="btn btn-sm btn-warning whitespace-nowrap"
                 :disabled="!isLoggedIn"
                 :title="!isLoggedIn ? 'Please log in to flag tools' : ''"
               >
