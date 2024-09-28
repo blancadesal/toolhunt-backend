@@ -91,7 +91,7 @@ def clean_tool_data(tool_data):
         if not t.deprecated and not t.experimental and missing_annotations:
             tools.append(t)
         else:
-            logger.info(f"Tool {t.name} is deprecated:{t.deprecated}, experimental:{t.experimental}, or has no missing annotations. It will not be added to the database.")
+            logger.info(f"Tool {t.name} is deprecated:{t.deprecated}, experimental:{t.experimental}, has {len(t.missing_annotations)} missing annotations. It will not be added to the database.")
     return tools
 
 
