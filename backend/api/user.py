@@ -1,23 +1,25 @@
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from fastapi import APIRouter, Cookie, Depends, HTTPException, status
+from fastapi import APIRouter, Cookie, Depends
 from jose import JWTError, jwt
 from tortoise.exceptions import DoesNotExist
 
 from backend.config import get_settings
+from backend.exceptions import AuthenticationError, InvalidToken, UserCreationError
 from backend.models.pydantic import Token, User
 from backend.models.tortoise import User as DBUser
-from backend.security import ALGORITHM, InvalidToken, decrypt_token, encrypt_token
+from backend.security import ALGORITHM, decrypt_token, encrypt_token
 from backend.utils import get_logger
 
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/user", tags=["users"])
+settings = get_settings()
 
 
 # helpers
-async def fetch_user_data(access_token):
+async def fetch_user_data(access_token: str) -> dict:
     async with httpx.AsyncClient() as client:
         response = await client.get(
             f"{settings.TOOLHUB_API_BASE_URL}/user/",
@@ -26,23 +28,22 @@ async def fetch_user_data(access_token):
     return response.json()
 
 
+# Use this when posting annotation data to toolhub
 async def get_user_token(user_id: str) -> Token:
     try:
         user = await DBUser.get(id=user_id)
         if user.encrypted_token is None:
-            raise HTTPException(status_code=401, detail="No token found for user")
+            raise AuthenticationError("No token found for user")
         return await decrypt_token(user.encrypted_token)
     except DoesNotExist:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise AuthenticationError("User not found")
     except InvalidToken as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        raise AuthenticationError(str(e))
 
 
 async def get_current_user(access_token: str = Cookie(None)) -> User:
     if not access_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
-        )
+        raise AuthenticationError("Not authenticated")
 
     try:
         payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[ALGORITHM])
@@ -52,9 +53,7 @@ async def get_current_user(access_token: str = Cookie(None)) -> User:
         user = await DBUser.get(id=user_id)
         return User(id=user.id, username=user.username, email=user.email)
     except (JWTError, ValueError, DoesNotExist):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        )
+        raise AuthenticationError("Invalid token")
 
 
 # endpoints
@@ -64,10 +63,7 @@ async def read_user(current_user: User = Depends(get_current_user)):
 
 
 # crud
-settings = get_settings()
-
-
-async def create_or_update_user(user_data, token_response):
+async def create_or_update_user(user_data: dict, token_response: dict) -> User:
     user_id = str(user_data["id"])
     token = Token(**token_response)
 
@@ -77,14 +73,19 @@ async def create_or_update_user(user_data, token_response):
         logger.error(f"Error encrypting token for user {user_id}: {str(e)}")
         encrypted_token = None
 
-    user, _ = await DBUser.update_or_create(
-        id=user_id,
-        defaults={
-            "username": user_data["username"],
-            "email": user_data["email"],
-            "encrypted_token": encrypted_token,
-            "token_expires_at": datetime.now(UTC) + timedelta(seconds=token.expires_in),
-        },
-    )
+    try:
+        user, _ = await DBUser.update_or_create(
+            id=user_id,
+            defaults={
+                "username": user_data["username"],
+                "email": user_data["email"],
+                "encrypted_token": encrypted_token,
+                "token_expires_at": datetime.now(UTC)
+                + timedelta(seconds=token.expires_in),
+            },
+        )
+    except Exception as e:
+        logger.error(f"Error creating or updating user {user_id}: {str(e)}")
+        raise UserCreationError(f"Failed to create or update user: {str(e)}")
 
     return User(id=user.id, username=user.username, email=user.email)
