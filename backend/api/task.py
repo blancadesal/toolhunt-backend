@@ -25,7 +25,6 @@ async def get_tasks_from_db(
     randomized: bool = True,
     limit: int = 10,
 ) -> list[TaskSchema]:
-    # For unfiltered queries, use a more efficient approach
     if not field_names and not tool_names:
         query = Task.filter(
             tool__deprecated=False,
@@ -39,7 +38,6 @@ async def get_tasks_from_db(
                 | Q(last_attempted__lt=twenty_four_hours_ago)
             )
 
-        # Use `values()` to fetch only necessary fields
         tasks_from_db = await query.values(
             "id",
             "field",
@@ -51,13 +49,11 @@ async def get_tasks_from_db(
             "tool__url",
         )
 
-        # Randomize and limit the results in Python
         if randomized:
             tasks_from_db = random.sample(tasks_from_db, min(len(tasks_from_db), limit))
         else:
             tasks_from_db = tasks_from_db[:limit]
 
-        # Update last_attempted and times_attempted
         task_ids = [task["id"] for task in tasks_from_db]
         await Task.filter(id__in=task_ids).update(
             last_attempted=datetime.now(), times_attempted=F("times_attempted") + 1
@@ -77,10 +73,7 @@ async def get_tasks_from_db(
             for task in tasks_from_db
         ]
 
-    # For filtered queries, use the existing approach
     query = Task.all().prefetch_related("tool")
-
-    # Add filter for non-deprecated and non-experimental tools
     query = query.filter(tool__deprecated=False, tool__experimental=False)
 
     if field_names:
@@ -190,42 +183,46 @@ async def get_task(task_id: int):
 async def submit_task(task_id: int, submission: TaskSubmission):
     logger.info(f"Received submission for task {task_id}: {submission}")
     try:
-        task = await Task.get_or_none(id=task_id).prefetch_related("tool")
-        if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
-
-        if (
-            task.tool.name != submission.tool.name
-            or task.tool.title != submission.tool.title
-        ):
-            raise HTTPException(status_code=400, detail="Tool data mismatch")
-
         user = await User.get_or_none(id=submission.user.id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
         is_report = submission.field in ["deprecated", "experimental"]
 
+        # Check if the tool still exists
+        tool = await Tool.get_or_none(name=submission.tool.name)
+        if not tool:
+            logger.warning(
+                f"Tool {submission.tool.name} not found in database. It may have been removed during a sync."
+            )
+
+        # Create CompletedTask entry regardless of whether the tool still exists
         completed_task = await CompletedTask.create(
-            tool_name=task.tool.name,
-            tool_title=task.tool.title,
-            field=submission.field if is_report else task.field,
+            tool_name=submission.tool.name,
+            tool_title=submission.tool.title,
+            field=submission.field,
             user=user.username,
             completed_date=submission.completed_date,
         )
         logger.info(f"Created CompletedTask: {completed_task}")
 
-        if is_report:
-            await Tool.filter(name=task.tool.name).update(
+        if is_report and tool:
+            await Tool.filter(name=submission.tool.name).update(
                 **{submission.field: submission.value}
             )
-            logger.info(f"Updated Tool: {task.tool.name}")
-        else:
-            await Task.filter(id=task_id).delete()
+            logger.info(f"Updated Tool: {submission.tool.name}")
+
+        # Attempt to delete the task if it exists
+        deleted_count = await Task.filter(id=task_id).delete()
+        if deleted_count:
             logger.info(f"Deleted task: {task_id}")
+        else:
+            logger.info(
+                f"Task {task_id} not found for deletion. It may have already been removed."
+            )
 
         return {
-            "message": "Task submitted successfully",
+            "message": "Task submission recorded successfully",
             "completed_task_id": completed_task.id,
         }
 

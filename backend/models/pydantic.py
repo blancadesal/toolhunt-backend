@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -64,7 +64,7 @@ class TaskSubmission(BaseModel):
     user: UserData
     completed_date: str
     value: Any
-    field: Optional[Literal["deprecated", "experimental"]] = None
+    field: str  # Make this a required field
 
     class Config:
         from_attributes = True

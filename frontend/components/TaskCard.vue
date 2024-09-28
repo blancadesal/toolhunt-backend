@@ -182,6 +182,7 @@ const submitContribution = async () => {
     },
     completed_date: new Date().toISOString(),
     value: currentUserInput.value,
+    field: currentTask.value.field,
   }
 
   console.log('Submission data:', submission)
