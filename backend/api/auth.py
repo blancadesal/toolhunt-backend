@@ -1,4 +1,3 @@
-import logging
 import secrets
 from datetime import timedelta
 from urllib.parse import urlencode
@@ -10,10 +9,12 @@ from backend.api.user import create_or_update_user, fetch_user_data
 from backend.config import get_settings
 from backend.models.tortoise import User as DBUser
 from backend.security import create_access_token, decrypt_token, exchange_code_for_token
+from backend.utils import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"], include_in_schema=False)
 settings = get_settings()
-logger = logging.getLogger(__name__)
 
 
 @router.get("/login")

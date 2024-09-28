@@ -1,18 +1,41 @@
-import logging
 import secrets
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Any, Literal
 
+from pydantic import AnyUrl, BeforeValidator, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-log = logging.getLogger("uvicorn")
+from backend.utils import get_logger
+
+logger = get_logger(__name__)
+
+
+def parse_cors(v: Any) -> list[str] | str:
+    if isinstance(v, str) and not v.startswith("["):
+        return [i.strip() for i in v.split(",")]
+    elif isinstance(v, list | str):
+        return v
+    raise ValueError(v)
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file="../.env", case_sensitive=True)
+    PROJECT_NAME: str = "Toolhunt"
+    FRONTEND_HOST: str = "http://localhost:3000"
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[AnyUrl] | str, BeforeValidator(parse_cors)
+    ] = []
+
+    @computed_field
+    @property
+    def all_cors_origins(self) -> list[str]:
+        return [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS] + [
+            self.FRONTEND_HOST
+        ]
 
     # FastAPI configuration
     ENVIRONMENT: Literal["dev", "prod"] = "dev"
+    LOG_LEVEL: str = "INFO"
     DATABASE_URL: str
     TOOLHUB_API_BASE_URL: str = "https://toolhub-demo.wmcloud.org/api"
 
@@ -27,7 +50,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     ENCRYPTION_KEY: str
 
-    # Annotations to update
+    # Annotations to include
     ANNOTATIONS: dict[str, bool] = {
         "audiences": True,
         "content_types": True,
@@ -58,5 +81,5 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
-    log.info("Loading settings from the environment...")
+    logger.info("Loading settings from the environment...")
     return Settings()

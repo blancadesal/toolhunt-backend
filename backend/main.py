@@ -1,4 +1,3 @@
-import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -10,33 +9,36 @@ from starlette.middleware.sessions import SessionMiddleware
 from backend.api import auth, field, metrics, schema, task, tool, user
 from backend.config import get_settings
 from backend.db import register_tortoise
+from backend.utils import get_logger, setup_logging
 
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger(__name__)
+settings = get_settings()
+
+setup_logging(settings.LOG_LEVEL)
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    log.info("Starting up...")
+    logger.info("Starting up...")
     async with register_tortoise(app):
-        log.info("Database registered.")
+        logger.info("Database registered.")
         yield
 
 
-def create_app() -> FastAPI:
-    settings = get_settings()
-
-    app = FastAPI(title="Toolhunt", lifespan=lifespan)
+def create_app(settings) -> FastAPI:
+    app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
     # Add middleware
     app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["http://localhost:3000"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    # Set all CORS enabled origins
+    if settings.all_cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.all_cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     # Create a top-level API router
     api_router = APIRouter(prefix="/api/v1")
@@ -55,7 +57,7 @@ def create_app() -> FastAPI:
     return app
 
 
-app = create_app()
+app = create_app(settings)
 
 
 @app.get("/debug/session")

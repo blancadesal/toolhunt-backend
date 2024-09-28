@@ -13,12 +13,9 @@ from backend.models.pydantic import Token
 ALGORITHM = "HS256"
 
 settings = get_settings()
-
-# Create a Fernet instance for token encryption
 fernet = Fernet(settings.ENCRYPTION_KEY)
 
 
-# Add this new exception
 class InvalidToken(Exception):
     pass
 

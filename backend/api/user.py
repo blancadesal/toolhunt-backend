@@ -1,4 +1,3 @@
-import logging
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -10,9 +9,11 @@ from backend.config import get_settings
 from backend.models.pydantic import Token, User
 from backend.models.tortoise import User as DBUser
 from backend.security import ALGORITHM, InvalidToken, decrypt_token, encrypt_token
+from backend.utils import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/user", tags=["users"])
-logger = logging.getLogger(__name__)
 
 
 # helpers
