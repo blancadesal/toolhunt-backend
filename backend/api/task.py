@@ -207,7 +207,7 @@ async def submit_task(task_id: int, submission: TaskSubmission):
         is_report = submission.field in ["deprecated", "experimental"]
 
         completed_task = await CompletedTask.create(
-            tool=task.tool,
+            tool_name=task.tool.name,
             tool_title=task.tool.title,
             field=submission.field if is_report else task.field,
             user=user.username,

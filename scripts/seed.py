@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 from tortoise import Tortoise, run_async
-from tortoise.exceptions import IntegrityError
+from tortoise.exceptions import DoesNotExist, IntegrityError
 
 from backend.db import TORTOISE_ORM
 from backend.models.tortoise import CompletedTask, Tool
@@ -52,13 +52,12 @@ async def insert_completed_tasks():
 
     for task_data in completed_task_data:
         try:
-            tool = await Tool.get(name=task_data["tool_name"])
             completed_date = datetime.fromisoformat(
                 task_data["completed_date"].replace("Z", "+00:00")
             )
 
             _, created = await CompletedTask.get_or_create(
-                tool=tool,
+                tool_name=task_data["tool_name"],
                 tool_title=task_data["tool_title"],
                 field=task_data["field"],
                 user=task_data["user"],
@@ -76,8 +75,6 @@ async def insert_completed_tasks():
                     f"Skipped existing task: {task_data['tool_name']} - {task_data['field']} by {task_data['user']}"
                 )
 
-        except Tool.DoesNotExist:
-            logger.error(f"Tool not found: {task_data['tool_name']}")
         except IntegrityError as e:
             logger.error(f"IntegrityError inserting task: {str(e)}")
             logger.error(f"Task data: {task_data}")

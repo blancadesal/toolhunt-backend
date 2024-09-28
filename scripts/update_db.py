@@ -57,11 +57,11 @@ class ToolhuntTool:
 
 
 def is_deprecated(tool):
-    return tool["deprecated"] or tool["annotations"]["deprecated"]
+    return tool["annotations"]["deprecated"] is True or tool["deprecated"] is True
 
 
 def is_experimental(tool):
-    return tool["experimental"] or tool["annotations"]["experimental"]
+    return tool["annotations"]["experimental"] is True or tool["experimental"] is True
 
 
 def get_missing_annotations(tool_info, filter_by=settings.active_annotations):
@@ -78,17 +78,20 @@ def get_missing_annotations(tool_info, filter_by=settings.active_annotations):
 def clean_tool_data(tool_data):
     tools = []
     for tool in tool_data:
+        missing_annotations = get_missing_annotations(tool)
         t = ToolhuntTool(
             name=tool["name"],
             title=tool["title"],
             description=tool["description"],
             url=tool["url"],
-            missing_annotations=get_missing_annotations(tool),
+            missing_annotations=missing_annotations,
             deprecated=is_deprecated(tool),
             experimental=is_experimental(tool),
         )
-        if not t.deprecated and not t.experimental:
+        if not t.deprecated and not t.experimental and missing_annotations:
             tools.append(t)
+        else:
+            logger.info(f"Tool {t.name} is deprecated:{t.deprecated}, experimental:{t.experimental}, or has no missing annotations. It will not be added to the database.")
     return tools
 
 

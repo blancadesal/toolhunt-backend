@@ -23,7 +23,6 @@ class Tool(models.Model):
     experimental = fields.BooleanField(default=False)
 
     tasks: fields.ReverseRelation["Task"]
-    completed_tasks: fields.ReverseRelation["CompletedTask"]
 
     class Meta:
         table = "tool"
@@ -48,12 +47,7 @@ class Task(models.Model):
 
 class CompletedTask(models.Model):
     id = fields.IntField(pk=True, generated=True)
-    tool = fields.ForeignKeyField(
-        "models.Tool",
-        related_name="completed_tasks",
-        on_delete=fields.SET_NULL,
-        null=True,
-    )
+    tool_name = fields.CharField(max_length=255, null=False)
     tool_title = fields.CharField(max_length=255, null=False)
     field = fields.CharField(max_length=80, null=False)
     user = fields.CharField(max_length=255, null=False)
@@ -62,3 +56,4 @@ class CompletedTask(models.Model):
     class Meta:
         table = "completed_task"
         charset = "binary"
+        unique_together = ("tool_name", "field", "user", "completed_date")
