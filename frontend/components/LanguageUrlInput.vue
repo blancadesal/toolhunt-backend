@@ -15,13 +15,13 @@ const languageUrlPairs = ref([{ language: '', url: '' }])
 
 onMounted(() => {
   if (props.modelValue.length) {
-    languageUrlPairs.value = props.modelValue
+    languageUrlPairs.value = [...props.modelValue]
   }
 })
 
 watch(() => props.modelValue, (newValue) => {
   if (newValue.length) {
-    languageUrlPairs.value = newValue
+    languageUrlPairs.value = [...newValue]
   }
   else if (languageUrlPairs.value.length === 0) {
     languageUrlPairs.value = [{ language: '', url: '' }]
@@ -29,17 +29,17 @@ watch(() => props.modelValue, (newValue) => {
 }, { deep: true })
 
 const updateModelValue = () => {
-  emit('update:modelValue', languageUrlPairs.value.filter(pair => pair.language || pair.url))
+  emit('update:modelValue', [...languageUrlPairs.value])
 }
 
 const addPair = () => {
-  languageUrlPairs.value.push({ language: '', url: '' })
+  languageUrlPairs.value = [...languageUrlPairs.value, { language: '', url: '' }]
   updateModelValue()
 }
 
 const removePair = (index) => {
   if (languageUrlPairs.value.length > 1) {
-    languageUrlPairs.value.splice(index, 1)
+    languageUrlPairs.value = languageUrlPairs.value.filter((_, i) => i !== index)
     updateModelValue()
   }
 }
@@ -49,6 +49,14 @@ const handleKeydown = (event) => {
     event.preventDefault()
     emit('enter', event)
   }
+}
+
+const cleanupEmptyPairs = () => {
+  languageUrlPairs.value = languageUrlPairs.value.filter(pair => pair.language || pair.url)
+  if (languageUrlPairs.value.length === 0) {
+    languageUrlPairs.value = [{ language: '', url: '' }]
+  }
+  updateModelValue()
 }
 </script>
 
@@ -67,6 +75,7 @@ const handleKeydown = (event) => {
         :disabled="disabled"
         @input="(e) => { pair.language = e.target.value; updateModelValue(); }"
         @keydown="handleKeydown"
+        @blur="cleanupEmptyPairs"
       >
       <input
         :value="pair.url"
@@ -76,6 +85,7 @@ const handleKeydown = (event) => {
         :disabled="disabled"
         @input="(e) => { pair.url = e.target.value; updateModelValue(); }"
         @keydown="handleKeydown"
+        @blur="cleanupEmptyPairs"
       >
       <button
         v-if="languageUrlPairs.length > 1"
