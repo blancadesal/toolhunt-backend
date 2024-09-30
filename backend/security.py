@@ -104,3 +104,22 @@ def get_and_clear_redirect_url(request: Request) -> str:
     del request.session["oauth_state"]
     request.session.pop("redirect_after", None)
     return redirect_after
+
+
+async def refresh_access_token(refresh_token: str) -> Token:
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                settings.TOOLHUB_TOKEN_URL,
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
+                    "client_id": settings.CLIENT_ID,
+                    "client_secret": settings.CLIENT_SECRET,
+                },
+            )
+        response.raise_for_status()
+        return Token(**response.json())
+    except httpx.HTTPError as e:
+        logger.error(f"OAuth token refresh error: {str(e)}")
+        raise OAuthError("Failed to refresh access token")

@@ -278,37 +278,45 @@ async def prepare_toolhub_submission(submission: TaskSubmission) -> ToolhubSubmi
     return toolhub_data
 
 
-async def submit_to_toolhub(tool_name: str, toolhub_data: ToolhubSubmission, user_id: str):
+async def submit_to_toolhub(
+    tool_name: str, toolhub_data: ToolhubSubmission, user_id: str
+):
     try:
         token = await get_user_token(user_id)
         logger.info(f"Token: {token}")
         headers = {
             "Authorization": f"Bearer {token.access_token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         # Update the URL to use the correct structure
         url = f"{settings.TOOLHUB_API_BASE_URL}/tools/{tool_name}/annotations/"
 
         # Prepare the JSON data with double-quoted property names
-        json_data = json.dumps(toolhub_data.model_dump(exclude_unset=True), ensure_ascii=False)
+        json_data = json.dumps(
+            toolhub_data.model_dump(exclude_unset=True), ensure_ascii=False
+        )
 
         # Log the request details
         logger.info(f"Preparing Toolhub request: PUT {url}")
         logger.info(f"Toolhub request data: {json_data}")
 
         async with httpx.AsyncClient() as client:
-            response = await client.put(
-                url,
-                content=json_data,
-                headers=headers
-            )
+            response = await client.put(url, content=json_data, headers=headers)
             response.raise_for_status()
         logger.info(f"Successfully submitted data to Toolhub for tool: {tool_name}")
         logger.info(f"Toolhub response: {response.text}")
     except httpx.HTTPStatusError as e:
-        logger.error(f"HTTP error occurred while submitting to Toolhub: {e.response.text}")
-        raise HTTPException(status_code=e.response.status_code, detail=f"Error submitting to Toolhub: {e.response.text}")
+        logger.error(
+            f"HTTP error occurred while submitting to Toolhub: {e.response.text}"
+        )
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error submitting to Toolhub: {e.response.text}",
+        )
     except Exception as e:
         logger.error(f"Error submitting data to Toolhub for tool {tool_name}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error while submitting to Toolhub: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error while submitting to Toolhub: {str(e)}",
+        )
