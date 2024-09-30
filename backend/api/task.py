@@ -1,21 +1,28 @@
-import logging
+import json
 import random
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+import httpx
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from tortoise.contrib.fastapi import HTTPNotFoundError
-from tortoise.exceptions import OperationalError
 from tortoise.expressions import F, Q
 from tortoise.transactions import atomic
 
+from backend.api.user import get_current_user, get_user_token
 from backend.config import get_settings
-from backend.models.pydantic import TaskSchema, TaskSubmission, ToolSchema
+from backend.models.pydantic import (
+    TaskSchema,
+    TaskSubmission,
+    ToolhubSubmission,
+    ToolSchema,
+)
 from backend.models.tortoise import CompletedTask, Task, Tool, User
+from backend.utils import get_logger
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 settings = get_settings()
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # CRUD functions
@@ -180,13 +187,14 @@ async def get_task(task_id: int):
 
 @router.post("/{task_id}/submit")
 @atomic()
-async def submit_task(task_id: int, submission: TaskSubmission):
+async def submit_task(
+    task_id: int,
+    submission: TaskSubmission,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+):
     logger.info(f"Received submission for task {task_id}: {submission}")
     try:
-        user = await User.get_or_none(id=submission.user.id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
         is_report = submission.field in ["deprecated", "experimental"]
 
         # Check if the tool still exists
@@ -201,7 +209,7 @@ async def submit_task(task_id: int, submission: TaskSubmission):
             tool_name=submission.tool.name,
             tool_title=submission.tool.title,
             field=submission.field,
-            user=user.username,
+            user=current_user.username,
             completed_date=submission.completed_date,
         )
         logger.info(f"Created CompletedTask: {completed_task}")
@@ -211,6 +219,12 @@ async def submit_task(task_id: int, submission: TaskSubmission):
                 **{submission.field: submission.value}
             )
             logger.info(f"Updated Tool: {submission.tool.name}")
+
+        # Prepare and submit data to Toolhub as a background task
+        toolhub_data = await prepare_toolhub_submission(submission)
+        background_tasks.add_task(
+            submit_to_toolhub, submission.tool.name, toolhub_data, current_user.id
+        )
 
         # Attempt to delete the task if it exists
         deleted_count = await Task.filter(id=task_id).delete()
@@ -226,9 +240,6 @@ async def submit_task(task_id: int, submission: TaskSubmission):
             "completed_task_id": completed_task.id,
         }
 
-    except OperationalError as e:
-        logger.error(f"Database operational error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except Exception as e:
         logger.error(f"Error processing submission: {str(e)}", exc_info=True)
         logger.error(f"Submission data: {submission}")
@@ -236,3 +247,68 @@ async def submit_task(task_id: int, submission: TaskSubmission):
         raise HTTPException(
             status_code=422, detail=f"Error processing submission: {str(e)}"
         )
+
+
+def format_url_list(value):
+    return [{"language": item["language"], "url": item["url"]} for item in value]
+
+
+async def prepare_toolhub_submission(submission: TaskSubmission) -> ToolhubSubmission:
+    toolhub_data = ToolhubSubmission(
+        comment=f"Updated {submission.field} field using Toolhunt"
+    )
+
+    special_fields = {
+        "user_docs_url",
+        "developer_docs_url",
+        "feedback_url",
+        "privacy_policy_url",
+    }
+    valid_fields = set(ToolhubSubmission.model_fields.keys())
+
+    if submission.field in valid_fields:
+        if submission.field in special_fields:
+            value = format_url_list(submission.value)
+        else:
+            value = submission.value
+        setattr(toolhub_data, submission.field, value)
+    else:
+        logger.warning(f"Unhandled field: {submission.field}")
+
+    return toolhub_data
+
+
+async def submit_to_toolhub(tool_name: str, toolhub_data: ToolhubSubmission, user_id: str):
+    try:
+        token = await get_user_token(user_id)
+        logger.info(f"Token: {token}")
+        headers = {
+            "Authorization": f"Bearer {token.access_token}",
+            "Content-Type": "application/json"
+        }
+
+        # Update the URL to use the correct structure
+        url = f"{settings.TOOLHUB_API_BASE_URL}/tools/{tool_name}/annotations/"
+
+        # Prepare the JSON data with double-quoted property names
+        json_data = json.dumps(toolhub_data.model_dump(exclude_unset=True), ensure_ascii=False)
+
+        # Log the request details
+        logger.info(f"Preparing Toolhub request: PUT {url}")
+        logger.info(f"Toolhub request data: {json_data}")
+
+        async with httpx.AsyncClient() as client:
+            response = await client.put(
+                url,
+                content=json_data,
+                headers=headers
+            )
+            response.raise_for_status()
+        logger.info(f"Successfully submitted data to Toolhub for tool: {tool_name}")
+        logger.info(f"Toolhub response: {response.text}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP error occurred while submitting to Toolhub: {e.response.text}")
+        raise HTTPException(status_code=e.response.status_code, detail=f"Error submitting to Toolhub: {e.response.text}")
+    except Exception as e:
+        logger.error(f"Error submitting data to Toolhub for tool {tool_name}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error while submitting to Toolhub: {str(e)}")
