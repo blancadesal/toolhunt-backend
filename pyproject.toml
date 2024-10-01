@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "fastapi-toolhub-oauth"
+name = "toolhunt-backend"
 version = "0.1.0"
 description = ""
 authors = ["Slavina Stefanova <sstefanova@wikimedia.org>"]

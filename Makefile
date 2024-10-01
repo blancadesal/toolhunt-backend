@@ -43,11 +43,9 @@ db-exec:  ## Access the db shell
 web-shell:  ## Access the web shell
 	@docker-compose exec fastapi-web sh
 
-lint:  ## Run linting using pre-commit and eslint
+lint:  ## Lint using pre-commit
 	@echo "Running pre-commit..."
 	@poetry run pre-commit run --all-files
-	@echo "Running eslint..."
-	@cd frontend && npm run lint && cd ..
 
 test:  ## Run tests using pytest
 	@docker-compose exec fastapi-web python -m pytest
