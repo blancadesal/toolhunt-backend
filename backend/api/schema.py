@@ -82,7 +82,6 @@ def clean_schema(full_schema):
     for schema in referenced:
         cleaned["schemas"][schema] = full_schema.get(schema, {})
 
-    # Adjust all references in the cleaned schema
     adjust_references(cleaned)
 
     return cleaned

@@ -7,9 +7,8 @@ from backend.models.tortoise import Tool
 router = APIRouter(prefix="/tools", tags=["tools"])
 
 
-@router.get("/names", response_model=ToolNamesResponse)
-async def get_tool_names():
-    """Get the human-readable titles of all non-deprecated and non-experimental tools, and their Toolhub names."""
+@router.get("", response_model=ToolNamesResponse)
+async def get_tools():
     try:
         tools = await Tool.filter(deprecated=False, experimental=False).values(
             "name", "title"

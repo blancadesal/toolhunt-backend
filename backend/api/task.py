@@ -24,7 +24,89 @@ logger = get_logger(__name__)
 toolhub_client = ToolhubClient(settings.TOOLHUB_API_BASE_URL)
 
 
-# CRUD functions
+@router.get(
+    "", response_model=list[TaskSchema], responses={404: {"model": HTTPNotFoundError}}
+)
+async def get_tasks(
+    field_names: Optional[str] = Query(
+        None, description="Comma-separated list of field names"
+    ),
+    tool_names: Optional[str] = Query(
+        None, description="Comma-separated list of tool names"
+    ),
+    limit: int = Query(5, description="Number of tasks to return", ge=1, le=20),
+):
+    tasks = await get_tasks_from_db(
+        field_names=field_names, tool_names=tool_names, randomized=True, limit=limit
+    )
+    if not tasks:
+        raise HTTPException(status_code=404, detail="No tasks found")
+    return tasks
+
+
+@router.post("/{task_id}")
+@atomic()
+async def submit_task(
+    task_id: int,
+    submission: TaskSubmission,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+):
+    logger.info(f"Received submission for task {task_id}: {submission}")
+    try:
+        is_report = submission.field in ["deprecated", "experimental"]
+
+        tool = await Tool.get_or_none(name=submission.tool_name)
+        if not tool:
+            logger.warning(
+                f"Tool {submission.tool_name} not found in database. It may have been removed during a sync."
+            )
+
+        completed_task = await CompletedTask.create(
+            tool_name=submission.tool_name,
+            tool_title=submission.tool_title,
+            field=submission.field,
+            user=current_user.username,
+            completed_date=submission.completed_date,
+        )
+        logger.info(f"Created CompletedTask: {completed_task}")
+
+        if is_report and tool:
+            await Tool.filter(name=submission.tool_name).update(
+                **{submission.field: submission.value}
+            )
+            logger.info(f"Updated Tool: {submission.tool_name}")
+
+        toolhub_data = await prepare_toolhub_submission(submission)
+        background_tasks.add_task(
+            submit_to_toolhub,
+            submission.tool_name,
+            toolhub_data,
+            current_user.id,
+        )
+
+        deleted_count = await Task.filter(id=task_id).delete()
+        if deleted_count:
+            logger.info(f"Deleted task: {task_id}")
+        else:
+            logger.info(
+                f"Task {task_id} not found for deletion. It may have already been removed."
+            )
+
+        return {
+            "message": "Task submission recorded successfully",
+            "completed_task_id": completed_task.id,
+        }
+
+    except Exception as e:
+        logger.error(f"Error processing submission: {str(e)}", exc_info=True)
+        logger.error(f"Submission data: {submission}")
+        logger.error(f"Task ID: {task_id}")
+        raise HTTPException(
+            status_code=422, detail=f"Error processing submission: {str(e)}"
+        )
+
+
 async def get_tasks_from_db(
     field_names: Optional[str] = None,
     tool_names: Optional[str] = None,
@@ -122,133 +204,6 @@ async def get_tasks_from_db(
         )
         for task in tasks
     ]
-
-
-# async def get_task_from_db(task_id: int) -> TaskSchema:
-#     task = await Task.filter(id=task_id).prefetch_related("tool").first()
-#     if not task:
-#         raise HTTPException(status_code=404, detail="Task not found")
-#     return TaskSchema(
-#         id=task.id,
-#         tool=ToolSchema(
-#             name=task.tool.name,
-#             title=task.tool.title,
-#             description=task.tool.description,
-#             url=task.tool.url,
-#         ),
-#         field=task.field,
-#     )
-
-
-# Routes
-@router.get(
-    "", response_model=list[TaskSchema], responses={404: {"model": HTTPNotFoundError}}
-)
-async def get_tasks(
-    field_names: Optional[str] = Query(
-        None, description="Comma-separated list of field names"
-    ),
-    tool_names: Optional[str] = Query(
-        None, description="Comma-separated list of tool names"
-    ),
-    limit: int = Query(5, description="Number of tasks to return", ge=1, le=20),
-):
-    tasks = await get_tasks_from_db(
-        field_names=field_names, tool_names=tool_names, randomized=True, limit=limit
-    )
-    if not tasks:
-        raise HTTPException(status_code=404, detail="No tasks found")
-    return tasks
-
-
-# @router.get(
-#     "/{tool_name}",
-#     response_model=list[TaskSchema],
-#     responses={404: {"model": HTTPNotFoundError}},
-# )
-# async def get_tasks_by_tool_name(tool_name: str):
-#     tasks = await get_tasks_from_db(tool_names=tool_name)
-#     if not tasks:
-#         raise HTTPException(
-#             status_code=404, detail="No tasks found for the specified tool name"
-#         )
-#     return tasks
-
-
-# @router.get(
-#     "/{task_id}",
-#     response_model=TaskSchema,
-#     responses={404: {"model": HTTPNotFoundError}},
-# )
-# async def get_task(task_id: int):
-#     return await get_task_from_db(task_id)
-
-
-@router.post("/{task_id}/submit")
-@atomic()
-async def submit_task(
-    task_id: int,
-    submission: TaskSubmission,
-    background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user),
-):
-    logger.info(f"Received submission for task {task_id}: {submission}")
-    try:
-        is_report = submission.field in ["deprecated", "experimental"]
-
-        # Check if the tool still exists
-        tool = await Tool.get_or_none(name=submission.tool_name)  # Updated
-        if not tool:
-            logger.warning(
-                f"Tool {submission.tool_name} not found in database. It may have been removed during a sync."  # Updated
-            )
-
-        # Create CompletedTask entry regardless of whether the tool still exists
-        completed_task = await CompletedTask.create(
-            tool_name=submission.tool_name,  # Updated
-            tool_title=submission.tool_title,  # Updated
-            field=submission.field,
-            user=current_user.username,
-            completed_date=submission.completed_date,
-        )
-        logger.info(f"Created CompletedTask: {completed_task}")
-
-        if is_report and tool:
-            await Tool.filter(name=submission.tool_name).update(  # Updated
-                **{submission.field: submission.value}
-            )
-            logger.info(f"Updated Tool: {submission.tool_name}")  # Updated
-
-        # Prepare and submit data to Toolhub as a background task
-        toolhub_data = await prepare_toolhub_submission(submission)
-        background_tasks.add_task(
-            submit_to_toolhub,
-            submission.tool_name,
-            toolhub_data,
-            current_user.id,  # Updated
-        )
-
-        # Attempt to delete the task if it exists
-        deleted_count = await Task.filter(id=task_id).delete()
-        if deleted_count:
-            logger.info(f"Deleted task: {task_id}")
-        else:
-            logger.info(
-                f"Task {task_id} not found for deletion. It may have already been removed."
-            )
-
-        return {
-            "message": "Task submission recorded successfully",
-            "completed_task_id": completed_task.id,
-        }
-
-    except Exception as e:
-        logger.error(f"Error processing submission: {str(e)}", exc_info=True)
-        logger.error(f"Submission data: {submission}")
-        logger.error(f"Task ID: {task_id}")
-        raise HTTPException(
-            status_code=422, detail=f"Error processing submission: {str(e)}"
-        )
 
 
 async def submit_to_toolhub(
