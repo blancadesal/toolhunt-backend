@@ -1,9 +1,7 @@
-import json
 import random
 from datetime import datetime, timedelta
 from typing import Optional
 
-import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from tortoise.contrib.fastapi import HTTPNotFoundError
 from tortoise.expressions import F, Q
@@ -18,11 +16,12 @@ from backend.models.pydantic import (
     ToolSchema,
 )
 from backend.models.tortoise import CompletedTask, Task, Tool, User
-from backend.utils import get_logger
+from backend.utils import ToolhubClient, get_logger, prepare_toolhub_submission
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 settings = get_settings()
 logger = get_logger(__name__)
+toolhub_client = ToolhubClient(settings.TOOLHUB_API_BASE_URL)
 
 
 # CRUD functions
@@ -249,73 +248,28 @@ async def submit_task(
         )
 
 
-def format_url_list(value):
-    return [{"language": item["language"], "url": item["url"]} for item in value]
-
-
-async def prepare_toolhub_submission(submission: TaskSubmission) -> ToolhubSubmission:
-    toolhub_data = ToolhubSubmission(
-        comment=f"Updated {submission.field} field using Toolhunt"
-    )
-
-    special_fields = {
-        "user_docs_url",
-        "developer_docs_url",
-        "feedback_url",
-        "privacy_policy_url",
-    }
-    valid_fields = set(ToolhubSubmission.model_fields.keys())
-
-    if submission.field in valid_fields:
-        if submission.field in special_fields:
-            value = format_url_list(submission.value)
-        else:
-            value = submission.value
-        setattr(toolhub_data, submission.field, value)
-    else:
-        logger.warning(f"Unhandled field: {submission.field}")
-
-    return toolhub_data
-
-
 async def submit_to_toolhub(
     tool_name: str, toolhub_data: ToolhubSubmission, user_id: str
 ):
     try:
         token = await get_user_token(user_id)
-        logger.info(f"Token: {token}")
-        headers = {
-            "Authorization": f"Bearer {token.access_token}",
-            "Content-Type": "application/json",
-        }
+        logger.info(f"Preparing Toolhub request for tool: {tool_name}")
+        logger.info(f"Toolhub request data: {toolhub_data}")
 
-        # Update the URL to use the correct structure
-        url = f"{settings.TOOLHUB_API_BASE_URL}/tools/{tool_name}/annotations/"
-
-        # Prepare the JSON data with double-quoted property names
-        json_data = json.dumps(
-            toolhub_data.model_dump(exclude_unset=True), ensure_ascii=False
+        response = await toolhub_client.put_annotation(
+            tool_name, toolhub_data, token.access_token
         )
-
-        # Log the request details
-        logger.info(f"Preparing Toolhub request: PUT {url}")
-        logger.info(f"Toolhub request data: {json_data}")
-
-        async with httpx.AsyncClient() as client:
-            response = await client.put(url, content=json_data, headers=headers)
-            response.raise_for_status()
         logger.info(f"Successfully submitted data to Toolhub for tool: {tool_name}")
-        logger.info(f"Toolhub response: {response.text}")
-    except httpx.HTTPStatusError as e:
+        logger.info(f"Toolhub response: {response}")
+    except HTTPException as e:
         logger.error(
-            f"HTTP error occurred while submitting to Toolhub: {e.response.text}"
+            f"Error submitting data to Toolhub for tool {tool_name}: {e.detail}"
         )
-        raise HTTPException(
-            status_code=e.response.status_code,
-            detail=f"Error submitting to Toolhub: {e.response.text}",
-        )
+        raise
     except Exception as e:
-        logger.error(f"Error submitting data to Toolhub for tool {tool_name}: {str(e)}")
+        logger.error(
+            f"Unexpected error submitting data to Toolhub for tool {tool_name}: {str(e)}"
+        )
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error while submitting to Toolhub: {str(e)}",
