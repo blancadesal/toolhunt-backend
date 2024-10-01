@@ -1,9 +1,11 @@
 from datetime import UTC, datetime, timedelta
+from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Cookie, Depends
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query
 from jose import JWTError, jwt
 from tortoise.exceptions import DoesNotExist
+from tortoise.functions import Count
 
 from backend.config import get_settings
 from backend.exceptions import (
@@ -12,7 +14,15 @@ from backend.exceptions import (
     OAuthError,
     UserCreationError,
 )
-from backend.models.pydantic import Token, User
+from backend.models.pydantic import (
+    ContributionData,
+    ContributionsResponse,
+    Token,
+    User,
+    UserContribution,
+    UserContributionsResponse,
+)
+from backend.models.tortoise import CompletedTask
 from backend.models.tortoise import User as DBUser
 from backend.security import (
     ALGORITHM,
@@ -38,7 +48,6 @@ async def fetch_user_data(access_token: str) -> dict:
     return response.json()
 
 
-# Use this when posting annotation data to toolhub
 async def get_user_token(user_id: str) -> Token:
     try:
         user = await DBUser.get(id=user_id)
@@ -47,12 +56,9 @@ async def get_user_token(user_id: str) -> Token:
 
         token = await decrypt_token(user.encrypted_token)
 
-        # Check if the token is expired or about to expire (within 5 minutes)
         if datetime.now(UTC) >= user.token_expires_at - timedelta(minutes=5):
-            # Refresh the token
             new_token = await refresh_access_token(token.refresh_token)
 
-            # Update the user's token in the database
             user.encrypted_token = await encrypt_token(new_token)
             user.token_expires_at = datetime.now(UTC) + timedelta(
                 seconds=new_token.expires_in
@@ -118,3 +124,91 @@ async def create_or_update_user(user_data: dict, token_response: dict) -> User:
         raise UserCreationError(f"Failed to create or update user: {str(e)}")
 
     return User(id=user.id, username=user.username, email=user.email)
+
+
+@router.get("/contributions", response_model=ContributionsResponse)
+async def get_contribution_metrics(
+    days: Optional[int] = Query(
+        None, description="Number of days to consider for the leaderboard"
+    ),
+    limit: Optional[int] = Query(
+        None, ge=1, description="Maximum number of results to return"
+    ),
+):
+    query = CompletedTask.all()
+
+    if days:
+        start_date = datetime.now() - timedelta(days=days)
+        query = query.filter(completed_date__gte=start_date)
+
+    contributions = (
+        await query.annotate(contribution_count=Count("id"))
+        .group_by("user")
+        .order_by("-contribution_count")
+        .values("user", "contribution_count")
+    )
+
+    ranked_contributions = []
+    current_rank = 1
+    previous_count = None
+    rank_increment = 0
+
+    for contribution in contributions:
+        if (
+            previous_count is not None
+            and contribution["contribution_count"] < previous_count
+        ):
+            current_rank += rank_increment
+            rank_increment = 1
+        else:
+            rank_increment += 1
+
+        ranked_contributions.append(
+            ContributionData(
+                rank=current_rank,
+                username=contribution["user"],
+                contributions=contribution["contribution_count"],
+            )
+        )
+
+        previous_count = contribution["contribution_count"]
+
+        if limit and len(ranked_contributions) >= limit:
+            break
+
+    return ContributionsResponse(contributions=ranked_contributions)
+
+
+@router.get("/contributions/{username}", response_model=UserContributionsResponse)
+async def get_user_contributions(
+    username: str,
+    limit: Optional[int] = Query(
+        None, ge=1, description="Maximum number of results to return (optional)"
+    ),
+):
+    # First, check if the user exists
+    user_exists = await DBUser.filter(username=username).exists()
+    if not user_exists:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Get the total number of contributions
+    total_contributions = await CompletedTask.filter(user=username).count()
+
+    # Get all contributions, or limit if specified
+    query = CompletedTask.filter(user=username).order_by("-completed_date")
+    if limit:
+        query = query.limit(limit)
+
+    contributions = await query.values("completed_date", "tool_title", "field")
+
+    return UserContributionsResponse(
+        contributions=[
+            UserContribution(
+                date=contrib["completed_date"],
+                tool_title=contrib["tool_title"],
+                field=contrib["field"],
+            )
+            for contrib in contributions
+        ],
+        total_contributions=total_contributions,
+    )

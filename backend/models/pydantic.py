@@ -179,3 +179,24 @@ class ToolhubSubmission(BaseModel):
     translate_url: Optional[str] = Field(None, json_schema_extra={"format": "uri"})
     bugtracker_url: Optional[str] = Field(None, json_schema_extra={"format": "uri"})
     comment: Optional[str] = Field(None, min_length=1)
+
+
+class ContributionData(BaseModel):
+    rank: int
+    username: str
+    contributions: int
+
+
+class ContributionsResponse(BaseModel):
+    contributions: list[ContributionData]
+
+
+class UserContribution(BaseModel):
+    date: datetime
+    tool_title: str
+    field: str
+
+
+class UserContributionsResponse(BaseModel):
+    contributions: list[UserContribution]
+    total_contributions: int

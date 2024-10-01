@@ -124,20 +124,20 @@ async def get_tasks_from_db(
     ]
 
 
-async def get_task_from_db(task_id: int) -> TaskSchema:
-    task = await Task.filter(id=task_id).prefetch_related("tool").first()
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return TaskSchema(
-        id=task.id,
-        tool=ToolSchema(
-            name=task.tool.name,
-            title=task.tool.title,
-            description=task.tool.description,
-            url=task.tool.url,
-        ),
-        field=task.field,
-    )
+# async def get_task_from_db(task_id: int) -> TaskSchema:
+#     task = await Task.filter(id=task_id).prefetch_related("tool").first()
+#     if not task:
+#         raise HTTPException(status_code=404, detail="Task not found")
+#     return TaskSchema(
+#         id=task.id,
+#         tool=ToolSchema(
+#             name=task.tool.name,
+#             title=task.tool.title,
+#             description=task.tool.description,
+#             url=task.tool.url,
+#         ),
+#         field=task.field,
+#     )
 
 
 # Routes
@@ -161,27 +161,27 @@ async def get_tasks(
     return tasks
 
 
-@router.get(
-    "/{tool_name}",
-    response_model=list[TaskSchema],
-    responses={404: {"model": HTTPNotFoundError}},
-)
-async def get_tasks_by_tool_name(tool_name: str):
-    tasks = await get_tasks_from_db(tool_names=tool_name)
-    if not tasks:
-        raise HTTPException(
-            status_code=404, detail="No tasks found for the specified tool name"
-        )
-    return tasks
+# @router.get(
+#     "/{tool_name}",
+#     response_model=list[TaskSchema],
+#     responses={404: {"model": HTTPNotFoundError}},
+# )
+# async def get_tasks_by_tool_name(tool_name: str):
+#     tasks = await get_tasks_from_db(tool_names=tool_name)
+#     if not tasks:
+#         raise HTTPException(
+#             status_code=404, detail="No tasks found for the specified tool name"
+#         )
+#     return tasks
 
 
-@router.get(
-    "/{task_id}",
-    response_model=TaskSchema,
-    responses={404: {"model": HTTPNotFoundError}},
-)
-async def get_task(task_id: int):
-    return await get_task_from_db(task_id)
+# @router.get(
+#     "/{task_id}",
+#     response_model=TaskSchema,
+#     responses={404: {"model": HTTPNotFoundError}},
+# )
+# async def get_task(task_id: int):
+#     return await get_task_from_db(task_id)
 
 
 @router.post("/{task_id}/submit")
