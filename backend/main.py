@@ -1,9 +1,8 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from backend.api import auth, field, metrics, schema, task, tool, user
@@ -40,7 +39,7 @@ def create_app(settings) -> FastAPI:
             allow_headers=["*"],
         )
 
-    # Create a top-level API router
+    # Top-level API router
     api_router = APIRouter(prefix="/api/v1")
 
     # Include other routers
@@ -58,10 +57,3 @@ def create_app(settings) -> FastAPI:
 
 
 app = create_app(settings)
-
-
-@app.get("/debug/session")
-async def debug_session(request: Request):
-    return JSONResponse(
-        content={"session": dict(request.session), "cookies": request.cookies}
-    )
