@@ -197,16 +197,16 @@ async def submit_task(
         is_report = submission.field in ["deprecated", "experimental"]
 
         # Check if the tool still exists
-        tool = await Tool.get_or_none(name=submission.tool.name)
+        tool = await Tool.get_or_none(name=submission.tool_name)  # Updated
         if not tool:
             logger.warning(
-                f"Tool {submission.tool.name} not found in database. It may have been removed during a sync."
+                f"Tool {submission.tool_name} not found in database. It may have been removed during a sync."  # Updated
             )
 
         # Create CompletedTask entry regardless of whether the tool still exists
         completed_task = await CompletedTask.create(
-            tool_name=submission.tool.name,
-            tool_title=submission.tool.title,
+            tool_name=submission.tool_name,  # Updated
+            tool_title=submission.tool_title,  # Updated
             field=submission.field,
             user=current_user.username,
             completed_date=submission.completed_date,
@@ -214,15 +214,18 @@ async def submit_task(
         logger.info(f"Created CompletedTask: {completed_task}")
 
         if is_report and tool:
-            await Tool.filter(name=submission.tool.name).update(
+            await Tool.filter(name=submission.tool_name).update(  # Updated
                 **{submission.field: submission.value}
             )
-            logger.info(f"Updated Tool: {submission.tool.name}")
+            logger.info(f"Updated Tool: {submission.tool_name}")  # Updated
 
         # Prepare and submit data to Toolhub as a background task
         toolhub_data = await prepare_toolhub_submission(submission)
         background_tasks.add_task(
-            submit_to_toolhub, submission.tool.name, toolhub_data, current_user.id
+            submit_to_toolhub,
+            submission.tool_name,
+            toolhub_data,
+            current_user.id,  # Updated
         )
 
         # Attempt to delete the task if it exists

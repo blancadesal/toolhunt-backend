@@ -44,16 +44,9 @@ class User(BaseModel):
     token_expires_at: Optional[datetime] = None
 
 
-class ToolData(BaseModel):
-    name: str
-    title: str
-
-    class Config:
-        from_attributes = True
-
-
 class TaskSubmission(BaseModel):
-    tool: ToolData
+    tool_name: str
+    tool_title: str
     completed_date: str
     value: Any
     field: str
