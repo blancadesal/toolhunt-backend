@@ -3,7 +3,7 @@ This script updates the database with tool and task information from the Toolhub
 It performs the following steps:
 1. Extracts raw tool data from the Toolhub API.
 2. Cleans and transforms the raw data.
-3. Upserts tool records and removes stale tools.
+3. Inserts or updates tool records and removes stale tools.
 4. Inserts or updates task records and removes stale tasks.
 """
 
