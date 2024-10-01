@@ -52,19 +52,11 @@ class ToolData(BaseModel):
         from_attributes = True
 
 
-class UserData(BaseModel):
-    id: str
-
-    class Config:
-        from_attributes = True
-
-
 class TaskSubmission(BaseModel):
     tool: ToolData
-    user: UserData
     completed_date: str
     value: Any
-    field: str  # Make this a required field
+    field: str
 
     class Config:
         from_attributes = True
