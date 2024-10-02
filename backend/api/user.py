@@ -38,44 +38,6 @@ router = APIRouter(prefix="/user", tags=["users"])
 settings = get_settings()
 
 
-# helpers
-async def fetch_user_data(access_token: str) -> dict:
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{settings.TOOLHUB_API_BASE_URL}/user/",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-    return response.json()
-
-
-async def get_user_token(user_id: str) -> Token:
-    try:
-        user = await DBUser.get(id=user_id)
-        if user.encrypted_token is None:
-            raise AuthenticationError("No token found for user")
-
-        token = await decrypt_token(user.encrypted_token)
-
-        if datetime.now(UTC) >= user.token_expires_at - timedelta(minutes=5):
-            new_token = await refresh_access_token(token.refresh_token)
-
-            user.encrypted_token = await encrypt_token(new_token)
-            user.token_expires_at = datetime.now(UTC) + timedelta(
-                seconds=new_token.expires_in
-            )
-            await user.save()
-
-            return new_token
-
-        return token
-    except DoesNotExist:
-        raise AuthenticationError("User not found")
-    except InvalidToken as e:
-        raise AuthenticationError(str(e))
-    except OAuthError as e:
-        raise AuthenticationError(f"Failed to refresh token: {str(e)}")
-
-
 async def get_current_user(access_token: str = Cookie(None)) -> User:
     if not access_token:
         raise AuthenticationError("Not authenticated")
@@ -91,39 +53,9 @@ async def get_current_user(access_token: str = Cookie(None)) -> User:
         raise AuthenticationError("Invalid token")
 
 
-# endpoints
 @router.get("")
 async def read_user(current_user: User = Depends(get_current_user)):
     return current_user
-
-
-# crud
-async def create_or_update_user(user_data: dict, token_response: dict) -> User:
-    user_id = str(user_data["id"])
-    token = Token(**token_response)
-
-    try:
-        encrypted_token = await encrypt_token(token)
-    except Exception as e:
-        logger.error(f"Error encrypting token for user {user_id}: {str(e)}")
-        encrypted_token = None
-
-    try:
-        user, _ = await DBUser.update_or_create(
-            id=user_id,
-            defaults={
-                "username": user_data["username"],
-                "email": user_data["email"],
-                "encrypted_token": encrypted_token,
-                "token_expires_at": datetime.now(UTC)
-                + timedelta(seconds=token.expires_in),
-            },
-        )
-    except Exception as e:
-        logger.error(f"Error creating or updating user {user_id}: {str(e)}")
-        raise UserCreationError(f"Failed to create or update user: {str(e)}")
-
-    return User(id=user.id, username=user.username, email=user.email)
 
 
 @router.get("/contributions", response_model=ContributionsResponse)
@@ -186,15 +118,12 @@ async def get_user_contributions(
         None, ge=1, description="Maximum number of results to return (optional)"
     ),
 ):
-    # First, check if the user exists
     user_exists = await DBUser.filter(username=username).exists()
     if not user_exists:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Get the total number of contributions
     total_contributions = await CompletedTask.filter(user=username).count()
 
-    # Get all contributions, or limit if specified
     query = CompletedTask.filter(user=username).order_by("-completed_date")
     if limit:
         query = query.limit(limit)
@@ -212,3 +141,68 @@ async def get_user_contributions(
         ],
         total_contributions=total_contributions,
     )
+
+
+async def create_or_update_user(user_data: dict, token_response: dict) -> User:
+    user_id = str(user_data["id"])
+    token = Token(**token_response)
+
+    try:
+        encrypted_token = await encrypt_token(token)
+    except Exception as e:
+        logger.error(f"Error encrypting token for user {user_id}: {str(e)}")
+        encrypted_token = None
+
+    try:
+        user, _ = await DBUser.update_or_create(
+            id=user_id,
+            defaults={
+                "username": user_data["username"],
+                "email": user_data["email"],
+                "encrypted_token": encrypted_token,
+                "token_expires_at": datetime.now(UTC)
+                + timedelta(seconds=token.expires_in),
+            },
+        )
+    except Exception as e:
+        logger.error(f"Error creating or updating user {user_id}: {str(e)}")
+        raise UserCreationError(f"Failed to create or update user: {str(e)}")
+
+    return User(id=user.id, username=user.username, email=user.email)
+
+
+async def fetch_user_data(access_token: str) -> dict:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{settings.TOOLHUB_API_BASE_URL}/user/",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+    return response.json()
+
+
+async def get_user_token(user_id: str) -> Token:
+    try:
+        user = await DBUser.get(id=user_id)
+        if user.encrypted_token is None:
+            raise AuthenticationError("No token found for user")
+
+        token = await decrypt_token(user.encrypted_token)
+
+        if datetime.now(UTC) >= user.token_expires_at - timedelta(minutes=5):
+            new_token = await refresh_access_token(token.refresh_token)
+
+            user.encrypted_token = await encrypt_token(new_token)
+            user.token_expires_at = datetime.now(UTC) + timedelta(
+                seconds=new_token.expires_in
+            )
+            await user.save()
+
+            return new_token
+
+        return token
+    except DoesNotExist:
+        raise AuthenticationError("User not found")
+    except InvalidToken as e:
+        raise AuthenticationError(str(e))
+    except OAuthError as e:
+        raise AuthenticationError(f"Failed to refresh token: {str(e)}")
