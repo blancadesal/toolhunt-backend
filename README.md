@@ -1,8 +1,8 @@
 # Toolhunt API
 
-This is a port of the [Toolhunt backend](https://github.com/wikimedia/toolhunt) to FastAPI.
+This is a port of the [Toolhunt backend](https://github.com/wikimedia/toolhunt) to FastAPI. The frontend is available at [Toolhunt frontend](https://github.com/blancadesal/toolhunt-frontend).
 
-Credit should be given to the original authors, mainly [nbarnabee](https://github.com/nbarnabee) as the principal contributor.
+Credit should be given to the original authors, mainly [nbarnabee](https://github.com/nbarnabee) and [HWaruguru](https://github.com/HWaruguru) as the principal contributors.
 
 ## Setting Up the Development Environment
 
