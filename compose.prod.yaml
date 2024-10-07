@@ -1,0 +1,21 @@
+services:
+  web:
+    restart: always
+    ports:
+      - "127.0.0.1:${HOST_PORT}:${CONTAINER_PORT}"
+    command: uvicorn backend.main:app --workers=4 --host 0.0.0.0 --port ${CONTAINER_PORT}
+    networks:
+      - backend
+
+  db:
+    user: "998:996"
+    restart: always
+    volumes:
+      - /var/lib/mysql_data:/var/lib/mysql
+      - ./mariadb.cnf:/etc/mysql/conf.d/mariadb.cnf:ro
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
