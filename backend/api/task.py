@@ -122,8 +122,7 @@ async def get_tasks_from_db(
         if settings.ENVIRONMENT == "prod" and tool_names is not None:
             minutes_ago = datetime.now() - timedelta(minutes=20)
             query = query.filter(
-                Q(last_attempted__isnull=True)
-                | Q(last_attempted__lt=twenty_four_hours_ago)
+                Q(last_attempted__isnull=True) | Q(last_attempted__lt=minutes_ago)
             )
 
         tasks_from_db = await query.values(
