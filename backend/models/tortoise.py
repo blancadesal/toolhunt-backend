@@ -10,7 +10,7 @@ class User(models.Model):
     created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
-        table = "users"
+        table = "user"
 
 
 class Tool(models.Model):
