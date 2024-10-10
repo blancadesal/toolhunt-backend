@@ -192,6 +192,7 @@ class ContributionsResponse(BaseModel):
 
 
 class UserContribution(BaseModel):
+    username: str
     date: datetime
     tool_title: str
     field: str

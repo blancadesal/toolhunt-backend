@@ -58,8 +58,8 @@ async def read_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-@router.get("/contributions", response_model=ContributionsResponse)
-async def get_contribution_metrics(
+@router.get("/contributions/leaderboard", response_model=ContributionsResponse)
+async def get_leaderboard_metrics(
     days: Optional[int] = Query(
         None, description="Number of days to consider for the leaderboard"
     ),
@@ -111,6 +111,34 @@ async def get_contribution_metrics(
     return ContributionsResponse(contributions=ranked_contributions)
 
 
+async def get_contributions(
+    username: Optional[str] = None, limit: Optional[int] = None
+) -> UserContributionsResponse:
+    query = CompletedTask.all().order_by("-completed_date")
+
+    if username:
+        query = query.filter(user=username)
+
+    if limit:
+        query = query.limit(limit)
+
+    contributions = await query.values("user", "completed_date", "tool_title", "field")
+    total_contributions = await query.count()
+
+    return UserContributionsResponse(
+        contributions=[
+            UserContribution(
+                username=contrib["user"],
+                date=contrib["completed_date"],
+                tool_title=contrib["tool_title"],
+                field=contrib["field"],
+            )
+            for contrib in contributions
+        ],
+        total_contributions=total_contributions,
+    )
+
+
 @router.get("/contributions/{username}", response_model=UserContributionsResponse)
 async def get_user_contributions(
     username: str,
@@ -122,25 +150,22 @@ async def get_user_contributions(
     if not user_exists:
         raise HTTPException(status_code=404, detail="User not found")
 
-    total_contributions = await CompletedTask.filter(user=username).count()
+    result = await get_contributions(username=username, limit=limit)
+    if not result.contributions:
+        raise HTTPException(
+            status_code=404, detail="No contributions found for this user"
+        )
 
-    query = CompletedTask.filter(user=username).order_by("-completed_date")
-    if limit:
-        query = query.limit(limit)
+    return result
 
-    contributions = await query.values("completed_date", "tool_title", "field")
 
-    return UserContributionsResponse(
-        contributions=[
-            UserContribution(
-                date=contrib["completed_date"],
-                tool_title=contrib["tool_title"],
-                field=contrib["field"],
-            )
-            for contrib in contributions
-        ],
-        total_contributions=total_contributions,
-    )
+@router.get("/contributions", response_model=UserContributionsResponse)
+async def get_all_contributions(
+    limit: Optional[int] = Query(
+        None, ge=1, description="Maximum number of contributions to return (optional)"
+    ),
+):
+    return await get_contributions(limit=limit)
 
 
 async def create_or_update_user(user_data: dict, token_response: dict) -> User:
